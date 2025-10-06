@@ -8,7 +8,9 @@
 #include <cstring>
 #include <cstdlib>
 #include <ctime>
+#include <map>
 #include <unistd.h>
+#include "client/player.hh"
 
 // Same message types as server
 enum class MessageType : uint8_t {
@@ -28,10 +30,26 @@ private:
     int playerId;
     float playerX, playerY;
     int clientUDPPort;
+
+    Player Player1= Player(1,false,5);
+    Player Player2= Player(2,true,6);
+
+    //std::map <std::string, Texture2D> textures;
+
+    //Initialization
+    /*
+    void initTextures(){
+        Texture2D tempTexture = LoadTexture("../resources/Player1.png");
+        this->textures["Player1"] = tempTexture;
+    }
+    */
     
 public:
     GameClient(int udpPort) : udpSocket(udpPort), connected(false), gameActive(false), 
-                              playerId(-1), playerX(0.0f), playerY(0.0f), clientUDPPort(udpPort) {}
+                              playerId(-1), playerX(0.0f), playerY(0.0f), clientUDPPort(udpPort) {
+        //InitWindow(600,600,"Teste");
+        //initTextures();
+    }
     
     bool connect(const std::string& serverIP, int tcpPort, int udpPort) {
         // Connect via TCP for control messages
@@ -160,18 +178,34 @@ public:
     }
     
     void gameLoop() {
-        float x = 0.0f, y = 0.0f;
-        
+        float x=0, y=0;
         while (connected) {
             if (gameActive) {
                 // Simulate movement
                 x += 0.1f;
                 y += 0.05f;
                 sendPosition(x, y);
+
+                Player1.moveBullets();
+                Player2.moveBullets();
+
+                std::deque<Bullet> *train1 = Player1.getbulletTrain();
+                std::deque<Bullet> *train2 = Player2.getbulletTrain();
+
+                if(!train1->empty()){
+                    Player1.checkHit(train2->front());
+                }
+                if(!train2->empty()){
+                    Player2.checkHit(train1->front());
+                }
+                if(!train1->empty() && !train2->empty()){
+                    train1->front().checkCollision(&train2->front());
+                }
             }
             
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
+        
     }
     
     void run() {
