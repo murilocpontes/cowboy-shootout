@@ -8,6 +8,8 @@ DEBUG_FLAGS = -g -DDEBUG
 
 # Directories
 SRC_DIR = src
+LIB_DIR = library
+INC_DIR = include
 SOCKET_DIR = $(SRC_DIR)/sockets
 CLIENT_DIR = $(SRC_DIR)/client
 SERVER_DIR = $(SRC_DIR)/server
@@ -17,9 +19,10 @@ BIN_DIR = bin
 # Include paths
 INCLUDES = -I$(SRC_DIR)
 
+
 # Source files
 SOCKET_SRCS = $(SOCKET_DIR)/tcp.cc $(SOCKET_DIR)/udp.cc
-CLIENT_SRCS = $(CLIENT_DIR)/main.cc
+CLIENT_SRCS = $(CLIENT_DIR)/main.cc $(CLIENT_DIR)/player.cc $(CLIENT_DIR)/bullet.cc
 SERVER_SRCS = $(SERVER_DIR)/main.cc
 
 # Object files

@@ -1,30 +1,38 @@
+#ifndef PLAYER_HH
+#define PLAYER_HH
+
 #include "client/bullet.hh"
 class Player {
     private:
+    std::deque <Bullet> bulletTrain;
     int Id;
     bool side;
-    int HP=5;
-    int yPosition=5;
-    int reloadDuration=10;
+    int HP;
+    int xPosition;
+    int yPosition;
+    int reloadDuration;
     int reloadTime;
-    bool readyToShoot=true;
-    int moveCooldown=2;
+    bool readyToShoot;
+    int moveCooldown;
     int moveTime;
-    bool readyToMove=true;
+    bool readyToMove;
 
     public:
     //Constructor
-    Player();
+    Player(int Id, bool side,int ypos);
     //Destructor
     ~Player();
 
     //Getters
     int getHP();
+    int getxPosition();
     int getyPosition();
     int getId();
     bool getside();
+    std::deque<Bullet> *getbulletTrain();
     //Setters
     void setHP(int HP);
+    void setxPosition(int xPos);
     void setyPosition(int yPos);
     void setId(int Id);
     void setside(bool side);
@@ -32,12 +40,18 @@ class Player {
     //Functions
     void move();
     void increaseMoveTime();
-    void shoot(std::queue<Bullet> bulletTrain);
+    void shoot();
     void increaseReloadTime();
-    void takeHit(int damage);
+    void checkHit(Bullet bullet);
+    void takeDamage(int damage);
+    void popBulletFront();
+    void moveBullets();
+    void checkBulletTimes();
     
 };
 
 class PlayerDisplay {
 
 };
+
+#endif
