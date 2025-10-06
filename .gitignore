@@ -1,0 +1,39 @@
+# Build artifacts
+build/
+bin/
+
+# Object files
+*.o
+*.obj
+
+# Executables
+*.exe
+*.out
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Core dumps
+core
+core.*
+
+# Temporary files
+*~
+*.swp
+*.swo
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+*.vcxproj*
+*.sln
+
+# Log files
+*.log
+
+# Test outputs
+test_output/
