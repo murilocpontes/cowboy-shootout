@@ -10,7 +10,7 @@
 #include <ctime>
 #include <map>
 #include <unistd.h>
-#include "client/player.hh"
+#include "player.hh"
 
 // Same message types as server
 enum class MessageType : uint8_t {
@@ -28,25 +28,24 @@ private:
     std::atomic<bool> connected;
     std::atomic<bool> gameActive;
     int playerId;
-    float playerX, playerY;
     int clientUDPPort;
+    bool playerSide;
 
-    Player Player1= Player(1,false,5);
-    Player Player2= Player(2,true,6);
+    Player Player1 = Player(1,false,5);
+    Player Player2 = Player(2,true,6);
 
-    //std::map <std::string, Texture2D> textures;
+    std::map <std::string, Texture2D> textures;
 
     //Initialization
-    /*
     void initTextures(){
         Texture2D tempTexture = LoadTexture("../resources/Player1.png");
         this->textures["Player1"] = tempTexture;
     }
-    */
+    
     
 public:
     GameClient(int udpPort) : udpSocket(udpPort), connected(false), gameActive(false), 
-                              playerId(-1), playerX(0.0f), playerY(0.0f), clientUDPPort(udpPort) {
+                              playerId(-1), clientUDPPort(udpPort) {
         //InitWindow(600,600,"Teste");
         //initTextures();
     }

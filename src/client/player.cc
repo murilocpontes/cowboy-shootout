@@ -1,4 +1,4 @@
-#include "client/player.hh"
+#include "player.hh"
 
     //Constructor
 Player::Player(int Id=1, bool side=false, int ypos=5){
@@ -17,7 +17,6 @@ Player::Player(int Id=1, bool side=false, int ypos=5){
 
     std::cout << "Created player" << Id << " HP" << this->HP << "\n";
     std::cout << "xpos and ypos " << this->xPosition << " " << this->yPosition << "\n";
-    this->shoot();
 }
     //Destructor
 Player::~Player(){
@@ -38,10 +37,6 @@ int Player::getId(){
 }
 bool Player::getside(){
     return this->side;
-}
-
-std::deque<Bullet>* Player::getbulletTrain(){
-    return &(this->bulletTrain);
 }
 //Setters
 void Player::setHP(int HP){
@@ -68,11 +63,11 @@ void Player::increaseMoveTime(){
     if(this->moveTime>this->moveCooldown) this->readyToMove = true;
     else this->moveTime++;
 }
-void Player::shoot(){
+void Player::shoot(std::deque<Bullet> *bulletTrain){
     if(this->readyToShoot){
         this->readyToShoot = false;
         Bullet bullet(this->side, this->yPosition);
-        this->bulletTrain.push_back(bullet);
+        bulletTrain->push_back(bullet);
     }
 }
 void Player::increaseReloadTime(){
@@ -89,30 +84,4 @@ void Player::checkHit(Bullet bullet){
 void Player::takeDamage(int damage){
     this->HP-=damage;
     std::cout<< "took damage! Hp is "<< this->HP << "\n";
-}
-
-void Player::popBulletFront(){
-    this->bulletTrain.pop_front();
-}
-
-void Player::moveBullets(){
-    for(auto it = this->bulletTrain.begin(); it<this->bulletTrain.end(); it++){
-        it->move();
-    }
-    this->checkBulletTimes();
-}
-
-void Player::checkBulletTimes(){
-    bool erased=true;
-    while(erased){
-        erased=false;
-        if(!bulletTrain.empty()) {
-            Bullet bullet = bulletTrain.front();
-            if(bullet.getbulletTime()>=bullet.getbulletLifeTime()){
-                bulletTrain.pop_front();
-                erased = true;
-                std::cout << "erased bullet! at BulletTime: " << bullet.getbulletTime() << " and xpos ypos: " << bullet.getxPosition() << " " << bullet.getyPosition() << " \n";
-            }
-        }
-    }
 }

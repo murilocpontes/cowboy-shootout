@@ -1,10 +1,9 @@
 #ifndef PLAYER_HH
 #define PLAYER_HH
 
-#include "client/bullet.hh"
+#include "bullet.hh"
 class Player {
     private:
-    std::deque <Bullet> bulletTrain;
     int Id;
     bool side;
     int HP;
@@ -29,7 +28,6 @@ class Player {
     int getyPosition();
     int getId();
     bool getside();
-    std::deque<Bullet> *getbulletTrain();
     //Setters
     void setHP(int HP);
     void setxPosition(int xPos);
@@ -40,13 +38,10 @@ class Player {
     //Functions
     void move();
     void increaseMoveTime();
-    void shoot();
+    void shoot(std::deque<Bullet> *bulletTrain);
     void increaseReloadTime();
     void checkHit(Bullet bullet);
     void takeDamage(int damage);
-    void popBulletFront();
-    void moveBullets();
-    void checkBulletTimes();
     
 };
 

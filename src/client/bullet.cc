@@ -1,4 +1,4 @@
-#include "client/bullet.hh"
+#include "bullet.hh"
 //Constructor
 Bullet::Bullet(bool side, int yPosition){
     this->side = side;
