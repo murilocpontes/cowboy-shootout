@@ -15,6 +15,8 @@ public:
 
     int acceptConnection(); // Returns client socket descriptor
     void closeClientSocket(int clientSocket);
+    bool sendToClient(int clientSocket, const char* data, size_t dataSize);
+    ssize_t receiveFromClient(int clientSocket, char* buffer, size_t bufferSize);
 
 private:
     int _listenSocketFd;
