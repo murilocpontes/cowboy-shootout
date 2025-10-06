@@ -74,23 +74,15 @@ void MessageHandler::handleMatchStart(int clientSocket, int matchId){
     // Notify players that their match is starting
     auto playersInMatch = playerManager->getPlayersInMatch(matchId);
     // Create TCP message for game start
-    // Message format: type(1) + opponentId(4) = 5 bytes
-    char gameStartMsg[5];
+    // Message format: type(1) + side(1) = 2 bytes
+    char gameStartMsg[2];
     gameStartMsg[0] = static_cast<char>(MessageType::GAME_START);
     
     for(const auto& player : playersInMatch){
-        int opponentId = -1;
-        for(const auto& otherPlayer : playersInMatch){
-            if(otherPlayer.id != player.id){
-                opponentId = otherPlayer.id;
-                break;
-            }
-        }
-
-        *reinterpret_cast<int*>(gameStartMsg + 1) = opponentId;
-        if(tcpServer->sendToClient(player.tcpSocket, gameStartMsg, 1)){
+        gameStartMsg[1] = static_cast<char>(player.side);
+        if(tcpServer->sendToClient(player.tcpSocket, gameStartMsg, 2)){
             std::cout << "MessageHandler: Sent game start message to Player " << player.id 
-                << " (Match: " << matchId << ", Opponent: " << opponentId << ")" << std::endl;
+                << " (Match: " << matchId << ", Side: " << player.side << ")" << std::endl;
         } else {
             std::cout << "MessageHandler: Failed to send game start to Player " << player.id << std::endl;
         }

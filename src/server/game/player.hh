@@ -11,6 +11,7 @@ public:
     bool isReady;
     int matchId;
     int yPos;
+    bool side; // 0 -> left, 1 -> right
     int id;
     int health;
     bool isAlive;

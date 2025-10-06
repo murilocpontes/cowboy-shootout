@@ -11,15 +11,8 @@
 #include <map>
 #include <unistd.h>
 #include "client/player.hh"
+#include "sockets/packets.hh"
 
-// Same message types as server
-enum class MessageType : uint8_t {
-    PLAYER_JOIN = 1,
-    PLAYER_READY = 2,
-    GAME_START = 3,
-    PLAYER_POSITION = 4,
-    PLAYER_SHOOT = 5
-};
 
 class GameClient {
 private:
