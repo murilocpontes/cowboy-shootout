@@ -1,0 +1,19 @@
+#include "player.hh"
+
+Player::Player() : tcpSocket(-1), udpPort(0), isReady(false), matchId(-1), 
+    yPos(0), id(0), health(100), isAlive(true) {}
+    
+void Player::reset() {
+    health = 100;
+    isAlive = true;
+    yPos = 0;
+    isReady = false;
+    matchId = -1;
+}
+    
+void Player::takeDamage(int damage) {
+    health = std::max(0, health - damage);
+    if (health <= 0) {
+        isAlive = false;
+    }
+}
