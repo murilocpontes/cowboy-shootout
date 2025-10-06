@@ -51,6 +51,21 @@ void TCPServer::closeClientSocket(int clientSocket){
     }
 }
 
+bool TCPServer::sendToClient(int clientSocket, const char* data, size_t dataSize){
+    if(clientSocket < 0) 
+        return false;
+    
+    ssize_t bytesSent = send(clientSocket, data, dataSize, 0);
+    return bytesSent == static_cast<ssize_t>(dataSize);
+}
+
+ssize_t TCPServer::receiveFromClient(int clientSocket, char* buffer, size_t bufferSize){
+    if(clientSocket < 0) 
+        return -1;
+    
+    return recv(clientSocket, buffer, bufferSize, 0);
+}
+
 // --- TCPClient Implementation ---
 TCPClient::TCPClient(){
     _sockFd = socket(AF_INET, SOCK_STREAM, 0);
