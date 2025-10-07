@@ -17,6 +17,10 @@ bool MatchManager::tryCreateMatch(int& matchId) {
     // Get first two ready players
     Player player1 = readyPlayers[0];
     Player player2 = readyPlayers[1];
+
+    // Configure players side
+    player1.side = 0;
+    player2.side = 1;
     
     // Create match
     matchId = nextMatchId++;

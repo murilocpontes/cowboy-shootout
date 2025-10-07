@@ -1,22 +1,69 @@
 #include "bullet.hh"
 //Constructor
-Bullet::Bullet(bool side, int yPosition){
+BulletDisplay::BulletDisplay(Texture2D texture, float xPosition=0, float yPosition=0){
+    this->texture = texture;
+    this->xPosition = xPosition;
+    this->yPosition = yPosition;
+    this->xScale = 6;
+    this->yScale = 6;
+    this->frameWidth = (float)this->texture.width;
+    this->frameHeight = (float)this->texture.height;
+    this->srcRec = {0.0f, 0.0f, this->frameWidth, this->frameHeight};
+    this->destRec = {xPosition,yPosition, this->frameWidth*this->xScale, this->frameHeight*this->yScale};
+    this->origin = {this->frameWidth*this->xScale/2,this->frameHeight*this->yScale/2};
+}
+//Destructor
+BulletDisplay::~BulletDisplay(){
+}
+//Getter
+float BulletDisplay::getxPosition(){
+    return this->xPosition;
+}
+float BulletDisplay::getyPosition(){
+    return this->yPosition;
+}
+// Setter
+void BulletDisplay::setxPosition(float xPosition){
+    this->xPosition = xPosition;
+}
+void BulletDisplay::setyPosition(float yPosition){
+    this->yPosition = yPosition;
+}
+// Functions
+void BulletDisplay::updateDestRect(){
+    this->destRec = {this->xPosition, this->yPosition, this->frameWidth*this->xScale, this->frameHeight*this->yScale};
+}
+void BulletDisplay::updatePosition(int xPosition, int yPosition){
+    float xpos=(float)xPosition;
+    float ypos=40.0f*yPosition+150.0f;
+    this->xPosition = xpos;
+    this->yPosition = ypos;
+    updateDestRect();
+}
+void BulletDisplay::draw(){
+    DrawTexturePro(this->texture, this->srcRec, this->destRec, this->origin, 0, WHITE);
+}
+
+//Constructor
+Bullet::Bullet(Texture2D texture, bool side, int yPosition){
     this->side = side;
     this->yPosition = yPosition;
-    this->xPosition = 100;
-    this->vx = 15;
+    this->xPosition = 160;
+    this->damage=2;
+    this->vx = 20;
+    this->bulletLifeTime = 48;
+    this->bulletTime = 0;
     if(side){
-        this->xPosition = 700;
-        this->vx = -15;
+        this->xPosition = screenWidth-this->xPosition;
+        this->vx = -this->vx;
     }
     this->alive = true;
 
-    std::cout << "new bullet!\n";
-    std::cout << "bullet velocity: " << this->vx << "xpos ypos:" << this->xPosition << " " << this->yPosition << "\n";
+    this->display = new BulletDisplay(texture, 0, 0);
+    updateDisplay();
 }
     //Destructor
 Bullet::~Bullet(){
-
 }
 
 //Getters
@@ -65,26 +112,34 @@ void Bullet::setalive(bool alive){
 void Bullet::move(){
     this->xPosition+=this->vx;
     this->bulletTime++;
-    std::cout << "bullet velocity: " << this->vx << "xpos ypos: " << this->xPosition << " " << this->yPosition << " bullet Time " << this->bulletTime << "\n";
 }
-bool Bullet::checkHit(int yPos){
+bool Bullet::checkHit(int xPos, int yPos){
     int y = this->yPosition-yPos;
-    if(y>=-1 && y<=1) return true;
+    int x = this->xPosition-xPos;
+    if(y>=-1 && y<=1 && x<=20 && x>=-20) {
+        this->alive=false;
+        return true;
+        }
     return false;
 }
 int Bullet::damageDelt(int yPos){
     if(this->yPosition==yPos) return this->damage;
     else return this->damage/2;
 }
-
 void Bullet::checkCollision(Bullet *bullet){
     if(!this->alive || !bullet->getalive()) return;
     if(this->side!=bullet->getside() && bullet->getalive() && this->yPosition==bullet->getyPosition()){
         int dx = this->xPosition-bullet->getxPosition();
-        if(dx>=-15 && dx<=15){
-            std::cout << "Bullet collision!\n";
+        if(dx>=-20 && dx<=20){
             this->alive = false;
             bullet->setalive(false);
         }
     }
 }
+void Bullet::updateDisplay(){
+    this->display->updatePosition(this->xPosition, this->yPosition);
+}
+void Bullet::drawDisplay(){
+    if(this->alive) this->display->draw();
+}
+

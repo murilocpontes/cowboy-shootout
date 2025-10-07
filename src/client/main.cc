@@ -10,16 +10,9 @@
 #include <ctime>
 #include <map>
 #include <unistd.h>
-#include "player.hh"
+#include "client/player.hh"
+#include "sockets/packets.hh"
 
-// Same message types as server
-enum class MessageType : uint8_t {
-    PLAYER_JOIN = 1,
-    PLAYER_READY = 2,
-    GAME_START = 3,
-    PLAYER_POSITION = 4,
-    PLAYER_SHOOT = 5
-};
 
 class GameClient {
 private:
@@ -27,27 +20,71 @@ private:
     UDP udpSocket;
     std::atomic<bool> connected;
     std::atomic<bool> gameActive;
+    std::atomic<bool> readySent;
+    std::atomic<bool> inMatch;
     int playerId;
     int clientUDPPort;
     bool playerSide;
 
-    Player Player1 = Player(1,false,5);
-    Player Player2 = Player(2,true,6);
+    double previousTime = GetTime();
+    double currentTime = 0.0;
+    double updateDrawTime = 0.0;
+    double waitTime = 0.0;
+    float deltaTime = 0.0f;
+
+    float timeCounter = 0.0f;
+    int targetFPS = 30;
+
+    Player *Player1;
+    Player *Player2;
+
+    std::map <bool, Player*> Players;
+    std::map <bool, std::deque<Bullet*>*> bulletTrains;
+
+    std::deque<Bullet*> *bulletTrain1 = new std::deque<Bullet*>;
+    std::deque<Bullet*> *bulletTrain2 = new std::deque<Bullet*>;
 
     std::map <std::string, Texture2D> textures;
 
     //Initialization
+    void initPlayers(){
+        Players[false] = new Player(playerId, false, 5, this->textures["Player1"], this->textures["Bullet1"]);
+        Players[true] = new Player(playerId, true, 5, this->textures["Player2"], this->textures["Bullet2"]);
+    }
+    void initBulletTrains(){
+        bulletTrains[false] = new std::deque<Bullet*>;
+        bulletTrains[true] = new std::deque<Bullet*>;
+    }
     void initTextures(){
-        Texture2D tempTexture = LoadTexture("../resources/Player1.png");
+        Image image = LoadImage("resources/Player1.png");
+        Texture2D tempTexture = LoadTextureFromImage(image);
         this->textures["Player1"] = tempTexture;
+        image = LoadImage("resources/Player2.png");
+        tempTexture = LoadTextureFromImage(image);
+        this->textures["Player2"] = tempTexture;
+        image = LoadImage("resources/Bullet1.png");
+        tempTexture = LoadTextureFromImage(image);
+        this->textures["Bullet1"] = tempTexture;
+        image = LoadImage("resources/Bullet2.png");
+        tempTexture = LoadTextureFromImage(image);
+        this->textures["Bullet2"] = tempTexture;
+        UnloadImage(image);
+    }
+    void initWindow(){
+
+        InitWindow(screenWidth,screenHeight,"Cowboy Shootout!");
+        SetTargetFPS(this->targetFPS);
     }
     
-    
 public:
-    GameClient(int udpPort) : udpSocket(udpPort), connected(false), gameActive(false), 
+    //Constructor
+    GameClient(int udpPort) : udpSocket(udpPort), connected(false), gameActive(false), readySent(false), 
                               playerId(-1), clientUDPPort(udpPort) {
-        //InitWindow(600,600,"Teste");
-        //initTextures();
+        initWindow();
+        initTextures();
+        initPlayers();
+        initBulletTrains();
+        this->playerSide = true;
     }
     
     bool connect(const std::string& serverIP, int tcpPort, int udpPort) {
@@ -72,11 +109,12 @@ public:
     
     void sendReady() {
         if (!connected) return;
-        
+    
         char readyMsg[1] = {static_cast<char>(MessageType::PLAYER_READY)};
         std::cout << "Sending ready message (type " << static_cast<int>(MessageType::PLAYER_READY) << ")" << std::endl;
         if (tcpClient.sendData(readyMsg, 1)) {
             std::cout << "Sent ready signal to server" << std::endl;
+            readySent=true;
         } else {
             std::cout << "Failed to send ready signal" << std::endl;
         }
@@ -153,17 +191,16 @@ public:
         }
     }
     
-    void sendPosition(float x, float y) {
+    void sendPosition() {
         if (!gameActive || playerId == -1) return;
-        
-        playerX = x;
-        playerY = y;
-        
+
         char positionMsg[13];
+        /*
         positionMsg[0] = static_cast<char>(MessageType::PLAYER_POSITION);
         *reinterpret_cast<int*>(positionMsg + 1) = playerId;
         *reinterpret_cast<float*>(positionMsg + 5) = x;
         *reinterpret_cast<float*>(positionMsg + 9) = y;
+        */
         
         udpSocket.sendTo(positionMsg, 13, "127.0.0.1", 8081);
     }
@@ -175,34 +212,124 @@ public:
         udpSocket.sendTo(shootMsg, 1, "127.0.0.1", 8081);
         std::cout << "Shot fired!" << std::endl;
     }
+
+    void draw() {
+        BeginDrawing();
+            ClearBackground(BLACK);
+            Players[false]->drawDisplay();
+            Players[true]->drawDisplay();
+            for(auto it = bulletTrains[false]->begin(); it!=bulletTrains[false]->end();it++){
+                (*it)->drawDisplay();
+            }
+            for(auto it = bulletTrains[true]->begin(); it!=bulletTrains[true]->end();it++){
+                (*it)->drawDisplay();
+            }
+        EndDrawing();
+    }
+
+    void readInputMenu(){
+        if(IsKeyPressed(KEY_R)){
+            sendReady();
+        }
+        if(IsKeyPressed(KEY_Q)){
+            connected=false;
+        }
+    }
+
+    void drawMenu(){
+        char mainMessage[] = "Commands: 'r' to signal ready, 'q' to exit";
+        char readyMessage[] = "Player Ready: looking for match...";
+        int shift = MeasureText(mainMessage, 20);
+        BeginDrawing();
+            ClearBackground(BLACK);
+            DrawText(mainMessage, screenWidth/2-shift/2,screenHeight/2-200,20,WHITE);
+            if(readySent){
+                shift = MeasureText(readyMessage,20);
+                DrawText(readyMessage,screenWidth/2-shift/2,screenHeight/2-100,20,WHITE); 
+            }
+        EndDrawing();
+    }
+
+    void readInputGame() {
+        Players[!playerSide]->shoot(bulletTrains[!playerSide],0);
+        if(IsKeyPressed(KEY_LEFT)){
+            Players[playerSide]->move(-2);
+        }
+        if(IsKeyPressed(KEY_RIGHT)){
+            Players[playerSide]->move(+2);
+        }
+        if(IsKeyPressed(KEY_Z)){
+            Players[playerSide]->shoot(bulletTrains[playerSide],-1);
+        }
+        if(IsKeyPressed(KEY_X)){
+            Players[playerSide]->shoot(bulletTrains[playerSide],0);
+        }
+        if(IsKeyPressed(KEY_C)){
+            Players[playerSide]->shoot(bulletTrains[playerSide],+1);
+        }
+    }
+    
+    void updateDisplays(){
+        Players[playerSide]->updateDisplay();
+        Players[!playerSide]->updateDisplay();
+        for(auto it = bulletTrains[playerSide]->begin(); it!=this->bulletTrains[playerSide]->end();it++){
+            (*it)->updateDisplay();
+        }
+        for(auto it = bulletTrains[!playerSide]->begin(); it!=bulletTrains[!playerSide]->end();it++){
+            (*it)->updateDisplay();
+        }
+    }
+
+    void updateFrameTimers(){
+        Players[playerSide]->updateTimer();
+        Players[!playerSide]->updateTimer();
+        if(!bulletTrains[playerSide]->empty()){
+            if(bulletTrains[playerSide]->front()->getbulletLifeTime() <= bulletTrains[playerSide]->front()->getbulletTime()){
+            bulletTrains[playerSide]->pop_front();
+            }
+        }
+        if(!bulletTrains[!playerSide]->empty()){
+            if(bulletTrains[!playerSide]->front()->getbulletLifeTime() <= bulletTrains[!playerSide]->front()->getbulletTime()){
+                bulletTrains[!playerSide]->pop_front();
+            }
+        }
+    }
+    
+    void moveBullets(){
+        for(auto it = bulletTrains[playerSide]->begin(); it!=bulletTrains[playerSide]->end();it++){
+            (*it)->move();
+        }
+        for(auto it = bulletTrains[!playerSide]->begin(); it!=bulletTrains[!playerSide]->end();it++){
+            (*it)->move();
+        }
+
+        for(auto it = bulletTrains[playerSide]->begin(); it!=bulletTrains[playerSide]->end();it++){
+            for(auto jt = bulletTrains[!playerSide]->begin(); jt!=bulletTrains[!playerSide]->end();jt++){
+            (*it)->checkCollision(*jt);
+            }
+        }
+        
+    }
+
+    void checkHit(){
+        if(!bulletTrains[!playerSide]->empty()){
+            Players[playerSide]->checkHit(bulletTrains[!playerSide]->front());
+        }
+        if(!bulletTrains[playerSide]->empty()){
+            Players[!playerSide]->checkHit(bulletTrains[playerSide]->front());
+        }
+    }
     
     void gameLoop() {
-        float x=0, y=0;
+        
         while (connected) {
             if (gameActive) {
-                // Simulate movement
-                x += 0.1f;
-                y += 0.05f;
-                sendPosition(x, y);
+                
+                
 
-                Player1.moveBullets();
-                Player2.moveBullets();
-
-                std::deque<Bullet> *train1 = Player1.getbulletTrain();
-                std::deque<Bullet> *train2 = Player2.getbulletTrain();
-
-                if(!train1->empty()){
-                    Player1.checkHit(train2->front());
-                }
-                if(!train2->empty()){
-                    Player2.checkHit(train1->front());
-                }
-                if(!train1->empty() && !train2->empty()){
-                    train1->front().checkCollision(&train2->front());
-                }
             }
             
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(std::chrono::milliseconds(30));
         }
         
     }
@@ -216,26 +343,27 @@ public:
         tcpThread.detach();
         udpThread.detach();
         gameThread.detach();
-        
+        /*
         // Simple command interface
-        std::string command;
-        std::cout << "Commands: 'ready' to signal ready, 'shoot' to shoot, 'quit' to exit" << std::endl;
-        
-        while (connected && std::getline(std::cin, command)) {
-            if (command == "ready") {
-                sendReady();
-            }
-            else if (command == "shoot") {
-                sendShoot();
-            }
-            else if (command == "quit") {
-                connected = false;
-                break;
-            }
-            else {
-                std::cout << "Unknown command. Use: ready, shoot, quit" << std::endl;
-            }
+        std::cout << "Commands: 'r' to signal ready, 'q' to exit" << std::endl;
+        while(connected && !WindowShouldClose()){
+            readInputMenu();
+            drawMenu();
+            if(gameActive) break;
+        }*/
+
+        while(connected && !WindowShouldClose()){
+            
+            readInputGame();
+            updateFrameTimers();
+            moveBullets();
+            checkHit();
+            updateDisplays();
+            draw();
+
         }
+
+        CloseWindow();
     }
 };
 

@@ -1,27 +1,61 @@
 #ifndef BULLET_HH
 #define BULLET_HH
 
+const int screenWidth = 1200;
+const int screenHeight = 700;
+
 #include <../include/raylib.h>
 #include <deque>
 #include <stdio.h>
 #include <iostream>
+class BulletDisplay {
+    private:
+    Texture2D texture;
+    Rectangle srcRec;
+    Rectangle destRec;
+    float frameWidth;
+    float frameHeight;
+    float xPosition;
+    float yPosition;
+    float xScale;
+    float yScale;
+    Vector2 origin;
+
+    public:
+    //Constructor
+    BulletDisplay(Texture2D texture, float xPosition, float yPosition);
+    //Destructor
+    ~BulletDisplay();
+    //Getter
+    float getxPosition();
+    float getyPosition();
+    //Setter
+    void setxPosition(float xPosition);
+    void setyPosition(float yPosition);
+    //Functions
+    void updateDestRect();
+    void updatePosition(int xPosition, int yPosition);
+    void draw();
+};
+
 class Bullet {
     private:
     bool side;
-    int damage=2;
+    int damage;
     int xPosition;
     int yPosition;
     int vx;
     bool alive;
-    int bulletLifeTime = 44;
-    int bulletTime = 0;
+    int bulletLifeTime;
+    int bulletTime;
+
+    BulletDisplay *display;
 
     public:
     //Constructor
-    Bullet(bool side, int yPosition);
+    Bullet(Texture2D texture, bool side, int yPosition);
     //Destructor
     ~Bullet();
-
     //Getters
     int getdamage();
     int getxPosition();
@@ -42,14 +76,14 @@ class Bullet {
 
     //Functions
     void move();
-    bool checkHit(int yPos);
+    bool checkHit(int xPos, int yPos);
     int damageDelt(int yPos);
     void checkCollision(Bullet *bullet);
+    void updateDisplay();
+    void drawDisplay();
     
 };
 
-class BulletDisplay {
-    
-};
+
 
 #endif
