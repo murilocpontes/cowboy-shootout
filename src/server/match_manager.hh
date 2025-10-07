@@ -26,12 +26,12 @@ public:
     bool tryCreateMatch(int& matchId);
     void startMatch(int matchId);
     void endMatch(int matchId);
-    void endMatchWithWinner(int matchId, int winnerId);
+    void endMatchWithWinner(int matchId, Player winner);
     
     // Match queries
     Match* findMatch(int matchId);
     int findPlayerMatch(int playerId);
-    int findWinnerInMatch(int matchId, int deadPlayerId);
+    Player* findWinnerInMatch(int matchId, int deadPlayerId);
     
     // Game loop
     void runMatchGameLoop(int matchId);

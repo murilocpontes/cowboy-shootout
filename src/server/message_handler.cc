@@ -127,13 +127,8 @@ void MessageHandler::handlePlayerPosition(const char* message){
     
     // Update player position
     playerManager->updatePlayerPosition(playerId, yPos);
-    
-    // Find player to get match ID
-    Player* player = playerManager->findInGamePlayerById(playerId);
-    if(player && player->matchId != -1){
-        // Broadcast position to other players in the match
-        broadcastManager->broadcastPlayerPosition(player->matchId, playerId, yPos);
-    }
+
+    // The players position are sent on the match loop thread
 }
 
 void MessageHandler::handlePlayerShoot(const char* message){
@@ -151,8 +146,8 @@ void MessageHandler::handlePlayerShoot(const char* message){
         std::cout << "MessageHandler: Player " << shooterId << " shot at Y=" << targetY 
                   << " in match " << player->matchId << std::endl;
         
-        // Broadcast shoot action to other players in the match
-        broadcastManager->broadcastShootAction(player->matchId, shooterId, targetY);
+        // Broadcast shoot action IMMEDIATELLY to other players in the match
+        broadcastManager->broadcastShootAction(player->matchId, *player, targetY);
     }
 }
 
@@ -177,19 +172,19 @@ void MessageHandler::handlePlayerDamage(const char* message){
         player = playerManager->findInGamePlayerById(playerId);
         if(player){
             // Broadcast damage to all players in match
-            broadcastManager->broadcastPlayerDamage(player->matchId, playerId, damage, player->health);
+            broadcastManager->broadcastPlayerDamage(player->matchId, *player, damage, player->health);
             
             // Check if player died
             if(!player->isAlive){
                 std::cout << "MessageHandler: Player " << playerId << " died in match " << player->matchId << std::endl;
                 
                 // Broadcast death
-                broadcastManager->broadcastPlayerDeath(player->matchId, playerId);
+                broadcastManager->broadcastPlayerDeath(player->matchId, *player);
                 
                 // Find winner and end match
-                int winnerId = matchManager->findWinnerInMatch(player->matchId, playerId);
-                if(winnerId != -1){
-                    matchManager->endMatchWithWinner(player->matchId, winnerId);
+                auto winner = matchManager->findWinnerInMatch(player->matchId, playerId);
+                if(winner){
+                    matchManager->endMatchWithWinner(player->matchId, *winner);
                 }
             }
         }
