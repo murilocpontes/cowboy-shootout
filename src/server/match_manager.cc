@@ -5,11 +5,11 @@
 #include <iostream>
 
 
-bool MatchManager::tryCreateMatch(int& matchId) {
+bool MatchManager::tryCreateMatch(int& matchId){
     // Get ready players
     auto readyPlayers = playerManager->getReadyPlayers();
     
-    if(readyPlayers.size() < 2) {
+    if(readyPlayers.size() < 2){
         std::cout << "MatchManager: Not enough ready players for a match" << std::endl;
         return false;
     }
@@ -33,7 +33,7 @@ bool MatchManager::tryCreateMatch(int& matchId) {
     playerManager->movePlayerToGame(player2.tcpSocket, matchId);
     
     // Store match
-    {
+{
         std::lock_guard<std::mutex> lock(matchesMutex);
         activeMatches[matchId] = std::move(match);
     }
@@ -46,7 +46,7 @@ bool MatchManager::tryCreateMatch(int& matchId) {
     return true;
 }
 
-void MatchManager::startMatch(int matchId) {
+void MatchManager::startMatch(int matchId){
     std::lock_guard<std::mutex> lock(matchesMutex);
     auto matchIt = activeMatches.find(matchId);
     if(matchIt == activeMatches.end())
@@ -62,8 +62,8 @@ void MatchManager::startMatch(int matchId) {
     match.gameThread.detach();
 }
 
-void MatchManager::endMatch(int matchId) {
-    {
+void MatchManager::endMatch(int matchId){
+{
         std::lock_guard<std::mutex> lock(matchesMutex);
         auto matchIt = activeMatches.find(matchId);
         if(matchIt == activeMatches.end()) return;
@@ -75,74 +75,74 @@ void MatchManager::endMatch(int matchId) {
     
     // Move players back to available using PlayerManager
     auto playersInMatch = playerManager->getPlayersInMatch(matchId);
-    for(const auto& player : playersInMatch) {
+    for(const auto& player : playersInMatch){
         playerManager->movePlayerToAvailable(player.tcpSocket);
     }
     
     // Remove the match
-    {
+{
         std::lock_guard<std::mutex> lock(matchesMutex);
         activeMatches.erase(matchId);
     }
 }
 
-void MatchManager::endMatchWithWinner(int matchId, int winnerId) {
-    {
+void MatchManager::endMatchWithWinner(int matchId, Player winner){
+{
         std::lock_guard<std::mutex> lock(matchesMutex);
         auto matchIt = activeMatches.find(matchId);
         if(matchIt == activeMatches.end()) return;
         
         matchIt->second->gameRunning = false;
-        matchIt->second->winnerId = winnerId;
+        matchIt->second->winnerId = winner.id;
     }
     
-    std::cout << "MatchManager: === MATCH " << matchId << " ENDED - WINNER: Player " << winnerId << " ===" << std::endl;
+    std::cout << "MatchManager: === MATCH " << matchId << " ENDED - WINNER: Player " << winner.id << " ===" << std::endl;
     
     // Broadcast game end to all players
-    broadcastManager->broadcastGameEnd(matchId, winnerId);
+    broadcastManager->broadcastGameEnd(matchId, winner);
     
     // End the match
     endMatch(matchId);
 }
 
-Match* MatchManager::findMatch(int matchId) {
+Match* MatchManager::findMatch(int matchId){
     std::lock_guard<std::mutex> lock(matchesMutex);
     auto it = activeMatches.find(matchId);
     return (it != activeMatches.end()) ? it->second.get() : nullptr;
 }
 
-int MatchManager::findPlayerMatch(int playerId) {
+int MatchManager::findPlayerMatch(int playerId){
     Player* player = playerManager->findInGamePlayerById(playerId);
     return player ? player->matchId : -1;
 }
 
-int MatchManager::findWinnerInMatch(int matchId, int deadPlayerId) {
+Player* MatchManager::findWinnerInMatch(int matchId, int deadPlayerId){
     std::lock_guard<std::mutex> lock(matchesMutex);
     auto matchIt = activeMatches.find(matchId);
-    if(matchIt != activeMatches.end()) {
+    if(matchIt != activeMatches.end()){
         Match& match = *matchIt->second;
-        return match.getOtherPlayer(deadPlayerId);
+        return playerManager->findInGamePlayerById(match.getOtherPlayer(deadPlayerId));
     }
-    return -1;
+    return nullptr;
 }
 
-void MatchManager::runMatchGameLoop(int matchId) {
+void MatchManager::runMatchGameLoop(int matchId){
     const auto targetFrameTime = std::chrono::microseconds(1000000/60);
     auto nextFrameTime = std::chrono::steady_clock::now() + targetFrameTime;
     
-    while(true) {
-        {
+    while(true){
+    {
             std::lock_guard<std::mutex> lock(matchesMutex);
             auto matchIt = activeMatches.find(matchId);
-            if(matchIt == activeMatches.end() || !matchIt->second->gameRunning) {
+            if(matchIt == activeMatches.end() || !matchIt->second->gameRunning){
                 break;
             }
         }
         
         // Broadcast position updates for all players in this match
         auto playersInMatch = playerManager->getPlayersInMatch(matchId);
-        for(const auto& player : playersInMatch) {
-            broadcastManager->broadcastPlayerPosition(matchId, player.id, player.yPos);
+        for(const auto& player : playersInMatch){
+            broadcastManager->broadcastPlayerPosition(matchId, player);
         }
         
         std::this_thread::sleep_until(nextFrameTime);
