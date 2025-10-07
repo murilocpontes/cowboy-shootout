@@ -34,8 +34,8 @@ bool UDP::sendTo(const char* data, size_t dataSize, const std::string& receiverI
     return bytesSent == dataSize;
 }
 
-bool UDP::receiveFrom(char* buffer, size_t bufferSize, sockaddr_in& senderAddress){
+ssize_t UDP::receiveFrom(char* buffer, size_t bufferSize, sockaddr_in& senderAddress){
     socklen_t senderAddLen = sizeof(senderAddress);
     ssize_t bytesReceived = recvfrom(_sockFd, buffer, bufferSize, 0, (struct sockaddr*)&senderAddress, &senderAddLen);
-    return bytesReceived > 0;
+    return bytesReceived;
 }

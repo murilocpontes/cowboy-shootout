@@ -48,8 +48,9 @@ void GameServer::handleUDPMessages(){
     sockaddr_in senderAddr;
     
     while(serverRunning){
-        if(udpSocket.receiveFrom(buffer, sizeof(buffer), senderAddr)){
-            messageHandler.processUDPMessage(buffer, senderAddr);
+        ssize_t packetSize = udpSocket.receiveFrom(buffer, sizeof(buffer), senderAddr);
+        if(packetSize > 0){
+            messageHandler.processUDPMessage(buffer, senderAddr, packetSize);
         }
     }
 }

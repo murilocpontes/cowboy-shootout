@@ -91,7 +91,7 @@ void MessageHandler::handleMatchStart(int clientSocket, int matchId){
 }
 
 // UDP message handling
-void MessageHandler::processUDPMessage(const char* message, const sockaddr_in& senderAddr){
+void MessageHandler::processUDPMessage(const char* message, const sockaddr_in& senderAddr, ssize_t packetSize){
     if(!message) 
         return;
     
@@ -99,15 +99,15 @@ void MessageHandler::processUDPMessage(const char* message, const sockaddr_in& s
     
     switch(type){
         case MessageType::PLAYER_POSITION:
-            handlePlayerPosition(message);
+            handlePlayerPosition(message, packetSize);
             break;
             
         case MessageType::PLAYER_SHOOT:
-            handlePlayerShoot(message);
+            handlePlayerShoot(message, packetSize);
             break;
             
-        case MessageType::PLAYER_DAMAGE:
-            handlePlayerDamage(message);
+        case MessageType::PLAYER_HEALTH:
+            handlePlayerHealth(message, packetSize);
             break;
             
         default:
@@ -116,8 +116,8 @@ void MessageHandler::processUDPMessage(const char* message, const sockaddr_in& s
     }
 }
 
-void MessageHandler::handlePlayerPosition(const char* message){
-    if(strlen(message) < 9){
+void MessageHandler::handlePlayerPosition(const char* message, ssize_t packetSize){
+    if(packetSize < 9){
         std::cout << "MessageHandler: Invalid PLAYER_POSITION message length" << std::endl;
         std::cout << "mssg received: " << message << "length "<<strlen(message) << std::endl;
         return;
@@ -133,8 +133,8 @@ void MessageHandler::handlePlayerPosition(const char* message){
     // The players position are sent on the match loop thread
 }
 
-void MessageHandler::handlePlayerShoot(const char* message){
-    if(strlen(message) < 9){
+void MessageHandler::handlePlayerShoot(const char* message, ssize_t packetSize){
+    if(packetSize < 9){
         std::cout << "MessageHandler: Invalid PLAYER_SHOOT message length" << std::endl;
         return;
     }
@@ -153,22 +153,20 @@ void MessageHandler::handlePlayerShoot(const char* message){
     }
 }
 
-void MessageHandler::handlePlayerDamage(const char* message){
-    if(strlen(message) < 9){
-        std::cout << "MessageHandler: Invalid PLAYER_DAMAGE message length" << std::endl;
+void MessageHandler::handlePlayerHealth(const char* message, ssize_t packetSize){
+    if(packetSize < 9){
+        std::cout << "MessageHandler: Invalid PLAYER_HEALTH message length" << std::endl;
         return;
     }
     
     int playerId = *reinterpret_cast<const int*>(message + 1);
-    int damage = *reinterpret_cast<const int*>(message + 5);
+    int health = *reinterpret_cast<const int*>(message + 5);
     
     // Find player to get match ID and current health
     Player* player = playerManager->findInGamePlayerById(playerId);
     if(player && player->matchId != -1 && player->isAlive){
-        int oldHealth = player->health;
-        
         // Update player health using
-        playerManager->updatePlayerHealth(playerId, damage);
+        playerManager->updatePlayerHealth(playerId, health);
         
         // Get updated player state
         player = playerManager->findInGamePlayerById(playerId);

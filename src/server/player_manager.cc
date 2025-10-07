@@ -68,7 +68,7 @@ bool PlayerManager::setPlayerReady(int tcpSocket){
 }
 
 // Player state
-void PlayerManager::movePlayerToGame(int tcpSocket, int matchId){
+void PlayerManager::movePlayerToGame(int tcpSocket, int matchId, bool side){
     std::lock_guard<std::mutex> availableLock(availablePlayersMutex);
     std::lock_guard<std::mutex> inGameLock(inGamePlayersMutex);
     
@@ -77,13 +77,14 @@ void PlayerManager::movePlayerToGame(int tcpSocket, int matchId){
         Player player = availableIt->second;
         player.reset(); // Reset health and status for new match
         player.matchId = matchId;
+        player.side = side;
         
         
         inGamePlayers[tcpSocket] = player;
         availablePlayers.erase(availableIt);
         
         std::cout << "PlayerManager: Moved Player " << player.id 
-                  << " to in-game (Match " << matchId << ")" << std::endl;
+                  << " to in-game (Match " << player.matchId << ")" << std::endl;
     }
 }
 
@@ -116,15 +117,14 @@ void PlayerManager::updatePlayerPosition(int playerId, int yPos){
     }
 }
 
-void PlayerManager::updatePlayerHealth(int playerId, int damage){
+void PlayerManager::updatePlayerHealth(int playerId, int health){
     std::lock_guard<std::mutex> lock(inGamePlayersMutex);
     
     for(auto& pair : inGamePlayers){
         if(pair.second.id == playerId && pair.second.isAlive){
-            pair.second.takeDamage(damage);
-            
-            std::cout << "PlayerManager: Player " << playerId << " took " << damage 
-                      << " damage, health now: " << pair.second.health << std::endl;
+            pair.second.updateHealth(health);
+            std::cout << "PlayerManager: Player " << playerId << " took damage! Health now: " 
+                << pair.second.health << std::endl;
             
             if(!pair.second.isAlive){
                 std::cout << "PlayerManager: Player " << playerId << " died!" << std::endl;
@@ -186,7 +186,7 @@ Player* PlayerManager::findInGamePlayerById(int playerId){
 
 std::vector<Player> PlayerManager::getPlayersInMatch(int matchId){
     std::lock_guard<std::mutex> lock(inGamePlayersMutex);
-    
+
     std::vector<Player> playersInMatch;
     for(const auto& pair : inGamePlayers){
         if(pair.second.matchId == matchId){

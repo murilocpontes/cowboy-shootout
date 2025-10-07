@@ -18,18 +18,14 @@ bool MatchManager::tryCreateMatch(int& matchId){
     Player player1 = readyPlayers[0];
     Player player2 = readyPlayers[1];
 
-    // Configure players side
-    player1.side = 0;
-    player2.side = 1;
-    
     // Create match
     matchId = nextMatchId++;
 
     auto match = std::make_unique<Match>(matchId, player1.id, player2.id);
     
     // Move players to in-game
-    playerManager->movePlayerToGame(player1.tcpSocket, matchId);
-    playerManager->movePlayerToGame(player2.tcpSocket, matchId);
+    playerManager->movePlayerToGame(player1.tcpSocket, matchId, 0);
+    playerManager->movePlayerToGame(player2.tcpSocket, matchId, 1);
     
     // Store match
 {

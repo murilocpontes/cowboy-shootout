@@ -21,7 +21,7 @@ public:
     // Specific broadcasts
     void broadcastPlayerPosition(int matchId, Player player);
     void broadcastShootAction(int matchId, Player player, int targetY);
-    void broadcastPlayerDamage(int matchId, Player player, int damage, int newHealth);
+    void broadcastPlayerHealth(int matchId, Player player, int newHealth);
     void broadcastPlayerDeath(int matchId, Player player);
     void broadcastGameEnd(int matchId, Player winner);
 };

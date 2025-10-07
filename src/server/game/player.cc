@@ -11,8 +11,10 @@ void Player::reset() {
     matchId = -1;
 }
     
-void Player::takeDamage(int damage) {
-    health = std::max(0, health - damage);
+
+
+void Player::updateHealth(int newHealth) {
+    health = std::max(0, newHealth);
     if (health <= 0) {
         isAlive = false;
     }
