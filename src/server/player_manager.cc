@@ -123,8 +123,8 @@ void PlayerManager::updatePlayerHealth(int playerId, int health){
     for(auto& pair : inGamePlayers){
         if(pair.second.id == playerId && pair.second.isAlive){
             pair.second.updateHealth(health);
-            std::cout << "PlayerManager: Player " << playerId << " took damage! Health now: " 
-                << pair.second.health << std::endl;
+            //std::cout << "PlayerManager: Player " << playerId << " took damage! Health now: " 
+             //   << pair.second.health << std::endl;
             
             if(!pair.second.isAlive){
                 std::cout << "PlayerManager: Player " << playerId << " died!" << std::endl;

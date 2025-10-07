@@ -126,7 +126,6 @@ void MessageHandler::handlePlayerPosition(const char* message, ssize_t packetSiz
     int playerId = *reinterpret_cast<const int*>(message + 1);
     int yPos = *reinterpret_cast<const int*>(message + 5);
     
-    std::cout << "playerId " << playerId << " yPos " << yPos << "\n";
     // Update player position
     playerManager->updatePlayerPosition(playerId, yPos);
 

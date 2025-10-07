@@ -132,13 +132,14 @@ public:
                     std::cout << "Game is starting!" << std::endl;
                     char side = *reinterpret_cast<char*> (buffer+1);
                     std::cout << side;
-                    if(side=='0'){
-                        std::cout << "right\n";
+                    if(side==0){
+                        std::cout << "left\n";
                         playerSide=false;
                     } 
-                    else {std::cout << "left\n";
+                    else {std::cout << "right\n";
                         playerSide=true;
                     }
+                    Players[playerSide]->setId(playerId);
                     gameActive = true;
                 }
                 else {
@@ -155,27 +156,27 @@ public:
     void handleUDPMessages() {
         char buffer[1024];
         sockaddr_in senderAddr;
+        ssize_t packetSize = udpSocket.receiveFrom(buffer, sizeof(buffer), senderAddr);
         
         while (connected) {
-            if (udpSocket.receiveFrom(buffer, sizeof(buffer), senderAddr)) {
+            if (packetSize>0) {
                 if (gameActive) {
-                    processGameUpdate(buffer);
+                    //processGameUpdate(buffer, packetSize);
                 }
             }
         }
     }
     
-    void processGameUpdate(const char* message) {
+    void processGameUpdate(const char* message, ssize_t packetSize) {
         if (!message) return;
         
         MessageType type = static_cast<MessageType>(message[0]);
         
         switch (type) {
             case MessageType::PLAYER_POSITION: {
-                std::cout << "Player Position strlen "<< strlen(message) << "\n";
-                if (strlen(message) >= 6) {
+                if (packetSize >= 6) {
                     char side = static_cast<char> (message[1]);
-                    int enemyPos = std::stoi(std::string(message+2));
+                    int enemyPos = *reinterpret_cast<const int*>(message+2);
                     if(side=='0') Players[false]->setyPosition(enemyPos);
                     else Players[true]->setyPosition(enemyPos);
                 }
@@ -183,10 +184,9 @@ public:
             }
             
             case MessageType::PLAYER_SHOOT: {
-                std::cout << "Player Shoot strlen "<< strlen(message) << "\n";
-                if(strlen(message) >=6){
+                if(packetSize >=6){
                     char side = static_cast<char> (message[1]);
-                    int shootPos = std::stoi(std::string(message+2));
+                    int shootPos = *reinterpret_cast<const int*>(message+2);
                     if(side=='0') Players[false]->shoot(bulletTrains[false],shootPos);
                     else Players[true]->shoot(bulletTrains[true],shootPos);
                 }
@@ -194,10 +194,9 @@ public:
             }
 
             case MessageType::PLAYER_HEALTH: {
-                std::cout << "Player Health strlen "<< strlen(message) << "\n";
-                if(strlen(message) >=6){
+                if(packetSize >=6){
                     char side = static_cast<char> (message[1]);
-                    int HP = std::stoi(std::string(message+2));
+                    int HP = *reinterpret_cast<const int*>(message+2);
                     if(side=='0') Players[false]->setHP(HP);
                     else Players[true]->setHP(HP);
                 }
@@ -217,11 +216,7 @@ public:
         *reinterpret_cast<int*>(positionMsg + 1) = playerId;
         *reinterpret_cast<int*>(positionMsg + 5) = Players[playerSide]->getyPosition();
         
-        for(int i=0;i<9;i++){
-            std::cout << (int)positionMsg[i];
-        }
-
-        std::cout << "position sent!\n";
+        //std::cout << "position sent!\n";
         
         udpSocket.sendTo(positionMsg, 9, "127.0.0.1", 8081);
     }
@@ -233,7 +228,7 @@ public:
         *reinterpret_cast<int*>(shootMsg + 1) = playerId;
         *reinterpret_cast<int*>(shootMsg + 5) = yPos;
 
-        std::cout << "Shot sent!\n";
+        //std::cout << "Shot sent!\n";
 
         udpSocket.sendTo(shootMsg, 9, "127.0.0.1", 8081);
     }
@@ -244,7 +239,7 @@ public:
         *reinterpret_cast<int*>(healthMsg + 1) = playerId;
         *reinterpret_cast<int*>(healthMsg + 5) = Players[playerSide]->getHP();
 
-        std::cout << "HP sent!\n";
+        //std::cout << "HP sent!\n";
 
         udpSocket.sendTo(healthMsg, 9, "127.0.0.1", 8081);
     }
@@ -287,7 +282,6 @@ public:
     }
 
     void readInputGame() {
-        Players[!playerSide]->shoot(bulletTrains[!playerSide],0);
         if(IsKeyPressed(KEY_LEFT)){
             Players[playerSide]->move(-2);
         }

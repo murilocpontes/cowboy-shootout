@@ -41,9 +41,9 @@ void BroadcastManager::broadcastPlayerHealth(int matchId, Player player, int new
     healthMsg[0] = static_cast<char>(MessageType::PLAYER_HEALTH);
     healthMsg[1] = static_cast<char>(player.side);
     *reinterpret_cast<int*>(healthMsg + 2) = newHealth;
-    
-    std::cout << "BroadcastManager: Broadcasting damage: Player " << player.id 
-              << " took damage! Remaining health: " << newHealth << std::endl;
+
+    //std::cout << "BroadcastManager: Broadcasting damage: Player " << player.id 
+    //          << " took damage! Remaining health: " << newHealth << std::endl;
     
     broadcastToMatch(matchId, healthMsg, 6); // Send to all (health control on server)
 }
