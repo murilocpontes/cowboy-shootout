@@ -96,11 +96,12 @@ class Player {
     void shoot(std::deque<Bullet*> *bulletTrain, int yPos);
     void increaseReloadTime();
     void updateTimer();
-    void checkHit(Bullet* bullet);
+    bool checkHit(Bullet* bullet);
     void takeDamage(int damage);
     void updatePosition(int yPos);
     void updateDisplay();
     void drawDisplay();
+    void reset();
     
 };
 

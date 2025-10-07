@@ -15,4 +15,10 @@ enum class MessageType : uint8_t {
     GAME_END = 8 
 };
 
+enum GameState {
+    MAIN_MENU,
+    GAME_MATCH,
+    GAME_OVER 
+};
+
 #endif

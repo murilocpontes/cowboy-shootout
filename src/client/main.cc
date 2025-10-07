@@ -25,17 +25,17 @@ private:
     int playerId;
     int clientUDPPort;
     bool playerSide;
+    bool winner;
+    GameState State;
 
     int targetFPS = 30;
+    int frameCounter = 60;
 
     Player *Player1;
     Player *Player2;
 
     std::map <bool, Player*> Players;
     std::map <bool, std::deque<Bullet*>*> bulletTrains;
-
-    std::deque<Bullet*> *bulletTrain1 = new std::deque<Bullet*>;
-    std::deque<Bullet*> *bulletTrain2 = new std::deque<Bullet*>;
 
     std::map <std::string, Texture2D> textures;
 
@@ -77,7 +77,9 @@ public:
         initTextures();
         initPlayers();
         initBulletTrains();
-        this->playerSide = true;
+        this->playerSide = false;
+        this->State = MAIN_MENU;
+        this->winner = false;
     }
     
     bool connect(const std::string& serverIP, int tcpPort, int udpPort) {
@@ -156,17 +158,17 @@ public:
     void handleUDPMessages() {
         char buffer[1024];
         sockaddr_in senderAddr;
-        ssize_t packetSize = udpSocket.receiveFrom(buffer, sizeof(buffer), senderAddr);
-        
+       
         while (connected) {
+            ssize_t packetSize = udpSocket.receiveFrom(buffer, sizeof(buffer), senderAddr);
             if (packetSize>0) {
                 if (gameActive) {
-                    //processGameUpdate(buffer, packetSize);
+                    processGameUpdate(buffer, packetSize);
                 }
             }
         }
     }
-    
+        
     void processGameUpdate(const char* message, ssize_t packetSize) {
         if (!message) return;
         
@@ -177,8 +179,8 @@ public:
                 if (packetSize >= 6) {
                     char side = static_cast<char> (message[1]);
                     int enemyPos = *reinterpret_cast<const int*>(message+2);
-                    if(side=='0') Players[false]->setyPosition(enemyPos);
-                    else Players[true]->setyPosition(enemyPos);
+                    if(side==0) Players[false]->updatePosition(enemyPos);
+                    else Players[true]->updatePosition(enemyPos);
                 }
                 break;
             }
@@ -187,7 +189,7 @@ public:
                 if(packetSize >=6){
                     char side = static_cast<char> (message[1]);
                     int shootPos = *reinterpret_cast<const int*>(message+2);
-                    if(side=='0') Players[false]->shoot(bulletTrains[false],shootPos);
+                    if(side==0) Players[false]->shoot(bulletTrains[false],shootPos);
                     else Players[true]->shoot(bulletTrains[true],shootPos);
                 }
                 break;
@@ -197,12 +199,33 @@ public:
                 if(packetSize >=6){
                     char side = static_cast<char> (message[1]);
                     int HP = *reinterpret_cast<const int*>(message+2);
-                    if(side=='0') Players[false]->setHP(HP);
+                    if(side==0) Players[false]->setHP(HP);
                     else Players[true]->setHP(HP);
                 }
                 break;
             }
             
+            case MessageType::GAME_END: {
+                if(packetSize >=2){
+                    char side = static_cast<char> (message[1]);
+                    bool winnerSide=true;
+                    if(side==0) winnerSide=false;
+                    winner = false;
+                    if(winnerSide == playerSide) winner = true;
+
+                    gameActive = false;
+                    State = GAME_OVER;  
+
+                    Players[false]->reset();
+                    Players[true]->reset();
+
+                    bulletTrains[false]->clear();
+                    bulletTrains[true]->clear();
+
+                    std::cout << "game over!\n";
+                }
+            }
+
             default:
                 break;
         }
@@ -258,16 +281,7 @@ public:
         EndDrawing();
     }
 
-    void readInputMenu(){
-        if(IsKeyPressed(KEY_R)){
-            sendReady();
-        }
-        if(IsKeyPressed(KEY_Q)){
-            connected=false;
-        }
-    }
-
-    void drawMenu(){
+    void drawMainMenu(){
         char mainMessage[] = "Commands: 'r' to signal ready, 'q' to exit";
         char readyMessage[] = "Player Ready: looking for match...";
         int shift = MeasureText(mainMessage, 20);
@@ -281,18 +295,40 @@ public:
         EndDrawing();
     }
 
+    void drawGameOver(){
+        char playerLoses[] = "You Lose!";
+        char playerWins[] = "You Win!";
+        Color color = BLUE;
+        if(playerSide) color = RED;
+
+        int shiftLoses = MeasureText(playerLoses,50);
+        int shiftWins = MeasureText(playerWins,50);
+
+        BeginDrawing();
+            ClearBackground(BLACK);
+            if(winner) DrawText(playerWins, screenWidth/2-shiftWins/2,screenHeight/2-25,50,color);
+            else DrawText(playerLoses, screenWidth/2-shiftLoses/2,screenHeight/2-25,50,color);
+        EndDrawing();
+    }
+
     void readInputGame() {
-        if(IsKeyPressed(KEY_LEFT)){
+        if(IsKeyPressed(KEY_R) && State == MAIN_MENU){
+            sendReady();
+        }
+        if(IsKeyPressed(KEY_Q)){
+            connected=false;
+        }
+        if(IsKeyPressed(KEY_LEFT) && State == GAME_MATCH){
             Players[playerSide]->move(-2);
         }
-        if(IsKeyPressed(KEY_RIGHT)){
+        if(IsKeyPressed(KEY_RIGHT) && State == GAME_MATCH){
             Players[playerSide]->move(+2);
         }
-        if(IsKeyPressed(KEY_Z)){
+        if(IsKeyPressed(KEY_Z) && State == GAME_MATCH){
             Players[playerSide]->shoot(bulletTrains[playerSide],-1);
             sendShoot(-1);
         }
-        if(IsKeyPressed(KEY_X)){
+        if(IsKeyPressed(KEY_X) && State == GAME_MATCH){
             Players[playerSide]->shoot(bulletTrains[playerSide],0);
             sendShoot(0);
         }
@@ -353,50 +389,56 @@ public:
         }
     }
     
-    void gameLoop() {
-        
-        while (connected) {
-            if (gameActive) {
-                
-
-            }
-            
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        }
-        
+    void runMainMenu(){
+        frameCounter=150;
+        drawMainMenu();
+        if(gameActive){
+            State = GAME_MATCH;
+            readySent=false;
+        } 
     }
-    
+
+    void runGameMatch(){
+        updateFrameTimers();
+        moveBullets();
+        checkHit();
+        updateDisplays();
+
+        sendPosition();
+        sendHealth();
+
+        draw();
+    }
+
+    void runGameOver(){
+        frameCounter--;
+        drawGameOver();
+        if(frameCounter<0) State = MAIN_MENU;
+    }
+
     void run() {
         // Start message handling threads
         std::thread tcpThread(&GameClient::handleTCPMessages, this);
         std::thread udpThread(&GameClient::handleUDPMessages, this);
-        std::thread gameThread(&GameClient::gameLoop, this);
         
         tcpThread.detach();
         udpThread.detach();
-        gameThread.detach();
         
-        // Simple command interface
-        std::cout << "Commands: 'r' to signal ready, 'q' to exit" << std::endl;
         while(connected && !WindowShouldClose()){
-            readInputMenu();
-            drawMenu();
-            if(gameActive) break;
-        }
-
-        while(connected && !WindowShouldClose() && gameActive){
-            
             readInputGame();
-            updateFrameTimers();
-            moveBullets();
-            checkHit();
-            updateDisplays();
+            switch (State){
+                case MAIN_MENU:
+                    runMainMenu();
+                    break;
 
-            sendPosition();
-            sendHealth();
+                case GAME_MATCH:
+                    runGameMatch();
+                    break;
 
-            draw();
-
+                case GAME_OVER:
+                    runGameOver();
+                    break;
+            }
         }
 
         CloseWindow();

@@ -165,10 +165,12 @@ void Player::increaseReloadTime(){
     if(this->reloadTime>this->reloadDuration) this->readyToShoot = true;
     else this->reloadTime++;
 }
-void Player::checkHit(Bullet* bullet){
+bool Player::checkHit(Bullet* bullet){
     if(bullet->getalive() && bullet->checkHit(this->xPosition, this->yPosition)){
         this->takeDamage(bullet->damageDelt(this->yPosition));
+        return true;
     }
+    return false;
 }
 void Player::takeDamage(int damage){
     this->HP-=damage;
@@ -185,5 +187,12 @@ void Player::updateDisplay(){
 void Player::drawDisplay(){
     this->hpBar->draw(this->HP);
     this->display->draw();
+}
+
+void Player::reset(){
+    this->yPosition = 5;
+    this->HP = 10;
+    this->reloadTime = this->reloadDuration;
+    this->moveTime = this->moveCooldown;
 }
 

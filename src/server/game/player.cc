@@ -4,9 +4,9 @@ Player::Player() : tcpSocket(-1), udpPort(0), isReady(false), matchId(-1),
     yPos(0), side(0), id(0), health(100), isAlive(true) {}
     
 void Player::reset() {
-    health = 100;
+    health = 10;
     isAlive = true;
-    yPos = 0;
+    yPos = 5;
     isReady = false;
     matchId = -1;
 }
