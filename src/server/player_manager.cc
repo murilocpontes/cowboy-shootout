@@ -75,8 +75,9 @@ void PlayerManager::movePlayerToGame(int tcpSocket, int matchId){
     auto availableIt = availablePlayers.find(tcpSocket);
     if(availableIt != availablePlayers.end()){
         Player player = availableIt->second;
-        player.matchId = matchId;
         player.reset(); // Reset health and status for new match
+        player.matchId = matchId;
+        
         
         inGamePlayers[tcpSocket] = player;
         availablePlayers.erase(availableIt);

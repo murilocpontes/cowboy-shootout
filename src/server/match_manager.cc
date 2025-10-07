@@ -24,7 +24,6 @@ bool MatchManager::tryCreateMatch(int& matchId){
     
     // Create match
     matchId = nextMatchId++;
-    nextMatchId++;
 
     auto match = std::make_unique<Match>(matchId, player1.id, player2.id);
     

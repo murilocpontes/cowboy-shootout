@@ -26,13 +26,6 @@ private:
     int clientUDPPort;
     bool playerSide;
 
-    double previousTime = GetTime();
-    double currentTime = 0.0;
-    double updateDrawTime = 0.0;
-    double waitTime = 0.0;
-    float deltaTime = 0.0f;
-
-    float timeCounter = 0.0f;
     int targetFPS = 30;
 
     Player *Player1;
@@ -128,6 +121,8 @@ public:
             
             if (bytesReceived > 0) {
                 buffer[bytesReceived] = '\0';
+
+                std::cout << buffer << std::endl;
                 
                 if (strncmp(buffer, "JOINED:", 7) == 0) {
                     playerId = std::stoi(std::string(buffer + 7));
@@ -135,7 +130,15 @@ public:
                 }
                 else if (bytesReceived >= 1 && buffer[0] == static_cast<char>(MessageType::GAME_START)) {
                     std::cout << "Game is starting!" << std::endl;
-                    playerSide = buffer[1];
+                    char side = *reinterpret_cast<char*> (buffer+1);
+                    std::cout << side;
+                    if(side=='0'){
+                        std::cout << "right\n";
+                        playerSide=false;
+                    } 
+                    else {std::cout << "left\n";
+                        playerSide=true;
+                    }
                     gameActive = true;
                 }
                 else {
@@ -169,21 +172,35 @@ public:
         
         switch (type) {
             case MessageType::PLAYER_POSITION: {
-                if (strlen(message) >= 13) {
-                    int otherPlayerId = *reinterpret_cast<const int*>(message + 1);
-                    float x = *reinterpret_cast<const float*>(message + 5);
-                    float y = *reinterpret_cast<const float*>(message + 9);
-                    
-                    if (otherPlayerId != playerId) {
-                        std::cout << "Player " << otherPlayerId << " position: (" 
-                                  << x << ", " << y << ")" << std::endl;
-                    }
+                std::cout << "Player Position strlen "<< strlen(message) << "\n";
+                if (strlen(message) >= 6) {
+                    char side = static_cast<char> (message[1]);
+                    int enemyPos = std::stoi(std::string(message+2));
+                    if(side=='0') Players[false]->setyPosition(enemyPos);
+                    else Players[true]->setyPosition(enemyPos);
                 }
                 break;
             }
             
             case MessageType::PLAYER_SHOOT: {
-                std::cout << "Someone shot!" << std::endl;
+                std::cout << "Player Shoot strlen "<< strlen(message) << "\n";
+                if(strlen(message) >=6){
+                    char side = static_cast<char> (message[1]);
+                    int shootPos = std::stoi(std::string(message+2));
+                    if(side=='0') Players[false]->shoot(bulletTrains[false],shootPos);
+                    else Players[true]->shoot(bulletTrains[true],shootPos);
+                }
+                break;
+            }
+
+            case MessageType::PLAYER_HEALTH: {
+                std::cout << "Player Health strlen "<< strlen(message) << "\n";
+                if(strlen(message) >=6){
+                    char side = static_cast<char> (message[1]);
+                    int HP = std::stoi(std::string(message+2));
+                    if(side=='0') Players[false]->setHP(HP);
+                    else Players[true]->setHP(HP);
+                }
                 break;
             }
             
@@ -193,25 +210,43 @@ public:
     }
     
     void sendPosition() {
-        if (!gameActive || playerId == -1) return;
-
-        char positionMsg[13];
-        /*
+        //std::string positionMsg= static_cast<char>(MessageType::PLAYER_POSITION) + std::to_string(playerId) + std::to_string(Players[playerSide]->getyPosition());
+        char positionMsg[9];
+        
         positionMsg[0] = static_cast<char>(MessageType::PLAYER_POSITION);
         *reinterpret_cast<int*>(positionMsg + 1) = playerId;
-        *reinterpret_cast<float*>(positionMsg + 5) = x;
-        *reinterpret_cast<float*>(positionMsg + 9) = y;
-        */
+        *reinterpret_cast<int*>(positionMsg + 5) = Players[playerSide]->getyPosition();
         
-        udpSocket.sendTo(positionMsg, 13, "127.0.0.1", 8081);
+        for(int i=0;i<9;i++){
+            std::cout << (int)positionMsg[i];
+        }
+
+        std::cout << "position sent!\n";
+        
+        udpSocket.sendTo(positionMsg, 9, "127.0.0.1", 8081);
     }
     
-    void sendShoot() {
-        if (!gameActive) return;
+    void sendShoot(int yPos) {
         
-        char shootMsg[1] = {static_cast<char>(MessageType::PLAYER_SHOOT)};
-        udpSocket.sendTo(shootMsg, 1, "127.0.0.1", 8081);
-        std::cout << "Shot fired!" << std::endl;
+        char shootMsg[9]; 
+        shootMsg[0] = {static_cast<char>(MessageType::PLAYER_SHOOT)};
+        *reinterpret_cast<int*>(shootMsg + 1) = playerId;
+        *reinterpret_cast<int*>(shootMsg + 5) = yPos;
+
+        std::cout << "Shot sent!\n";
+
+        udpSocket.sendTo(shootMsg, 9, "127.0.0.1", 8081);
+    }
+
+    void sendHealth() {
+        char healthMsg[9];
+        healthMsg[0] = {static_cast<char>(MessageType::PLAYER_HEALTH)};
+        *reinterpret_cast<int*>(healthMsg + 1) = playerId;
+        *reinterpret_cast<int*>(healthMsg + 5) = Players[playerSide]->getHP();
+
+        std::cout << "HP sent!\n";
+
+        udpSocket.sendTo(healthMsg, 9, "127.0.0.1", 8081);
     }
 
     void draw() {
@@ -261,12 +296,15 @@ public:
         }
         if(IsKeyPressed(KEY_Z)){
             Players[playerSide]->shoot(bulletTrains[playerSide],-1);
+            sendShoot(-1);
         }
         if(IsKeyPressed(KEY_X)){
             Players[playerSide]->shoot(bulletTrains[playerSide],0);
+            sendShoot(0);
         }
         if(IsKeyPressed(KEY_C)){
             Players[playerSide]->shoot(bulletTrains[playerSide],+1);
+            sendShoot(1);
         }
     }
     
@@ -326,11 +364,10 @@ public:
         while (connected) {
             if (gameActive) {
                 
-                
 
             }
             
-            std::this_thread::sleep_for(std::chrono::milliseconds(30));
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
         
     }
@@ -360,6 +397,10 @@ public:
             moveBullets();
             checkHit();
             updateDisplays();
+
+            sendPosition();
+            sendHealth();
+
             draw();
 
         }

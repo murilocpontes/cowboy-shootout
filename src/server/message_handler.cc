@@ -119,12 +119,14 @@ void MessageHandler::processUDPMessage(const char* message, const sockaddr_in& s
 void MessageHandler::handlePlayerPosition(const char* message){
     if(strlen(message) < 9){
         std::cout << "MessageHandler: Invalid PLAYER_POSITION message length" << std::endl;
+        std::cout << "mssg received: " << message << "length "<<strlen(message) << std::endl;
         return;
     }
     
     int playerId = *reinterpret_cast<const int*>(message + 1);
     int yPos = *reinterpret_cast<const int*>(message + 5);
     
+    std::cout << "playerId " << playerId << " yPos " << yPos << "\n";
     // Update player position
     playerManager->updatePlayerPosition(playerId, yPos);
 
@@ -172,7 +174,7 @@ void MessageHandler::handlePlayerDamage(const char* message){
         player = playerManager->findInGamePlayerById(playerId);
         if(player){
             // Broadcast damage to all players in match
-            broadcastManager->broadcastPlayerDamage(player->matchId, *player, damage, player->health);
+            broadcastManager->broadcastPlayerHealth(player->matchId, *player, player->health);
             
             // Check if player died
             if(!player->isAlive){

@@ -36,17 +36,16 @@ void BroadcastManager::broadcastShootAction(int matchId, Player player, int targ
     broadcastToMatch(matchId, shootMsg, 6, player.id); // Exclude shooter
 }
 
-void BroadcastManager::broadcastPlayerDamage(int matchId, Player player, int damage, int newHealth){
-    char damageMsg[10];
-    damageMsg[0] = static_cast<char>(MessageType::PLAYER_DAMAGE);
-    damageMsg[1] = static_cast<char>(player.side);
-    *reinterpret_cast<int*>(damageMsg + 2) = damage;
-    *reinterpret_cast<int*>(damageMsg + 6) = newHealth;
+void BroadcastManager::broadcastPlayerHealth(int matchId, Player player, int newHealth){
+    char healthMsg[10];
+    healthMsg[0] = static_cast<char>(MessageType::PLAYER_HEALTH);
+    healthMsg[1] = static_cast<char>(player.side);
+    *reinterpret_cast<int*>(healthMsg + 2) = newHealth;
     
-    std::cout << "BroadcastManager: Broadcasting damage: Player " << player.id 
-              << " took " << damage << " damage, health: " << newHealth << std::endl;
+    std::cout << "BroadcastManager: Broadcasting health: Player " << player.id 
+              << " health: " << newHealth << std::endl;
     
-    broadcastToMatch(matchId, damageMsg, 10); // Send to all (health control on server)
+    broadcastToMatch(matchId, healthMsg, 10); // Send to all (health control on server)
 }
 
 void BroadcastManager::broadcastPlayerDeath(int matchId, Player player){
