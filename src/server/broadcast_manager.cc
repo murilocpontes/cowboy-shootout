@@ -57,6 +57,19 @@ void BroadcastManager::broadcastPlayerDeath(int matchId, int playerId) {
     broadcastToMatch(matchId, deathMsg, 5); // Send to all players
 }
 
+/*
+void BroadcastManager::broadcastGameStart(int matchId, int playerId, bool playerSide, int enemyId) {
+    char gameStartMsg[];
+    gameStartMsg[0] = static_cast<char>(MessageType::GAME_START);
+    *reinterpret_cast<int*>(gameStartMsg+1) = playerId;
+    *reinterpret_cast<bool*>(gameStartMsg+5) = playerSide;
+    *reinterpret_cast<int*>(gameStartMsg+6) = enemyId;
+
+    std::cout << "BoradcastManager: Broadcasting game " << matchId << " start: Player " << playerId << " against Player " << enemyId << std::endl;
+    broadcastToMatch
+}
+*/
+
 void BroadcastManager::broadcastGameEnd(int matchId, int winnerId) {
     char gameEndMsg[5];
     gameEndMsg[0] = static_cast<char>(MessageType::GAME_END);

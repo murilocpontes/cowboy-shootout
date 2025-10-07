@@ -43,6 +43,41 @@ void PlayerDisplay::draw(){
 }
 
 //Constructor
+HealthDisplay::HealthDisplay(bool side, Color color, int xPosition, int yPosition){
+    this->side = side;
+    this->color = color;
+    this->xPosition = xPosition;
+    this->yPosition = yPosition;
+}
+// Destructor
+HealthDisplay::~HealthDisplay(){
+
+}
+// Getter
+// Setter
+void HealthDisplay::setxPosition(int xPosition){
+    this->xPosition = xPosition;
+}
+void HealthDisplay::setyPosition(int yPosition){
+    this->yPosition = yPosition;
+}
+void HealthDisplay::setcolor(Color color){
+    this->color = color;
+}
+// Functions
+void HealthDisplay::draw(int health){
+    DrawRectangle(this->xPosition,this->yPosition,310,40,WHITE);
+    DrawRectangle(this->xPosition+5,this->yPosition+5,300,30,WHITE);
+    for(int i=0;i<health;i++){
+    if(!side) DrawRectangle(this->xPosition+5+30*i,this->yPosition+5,30,30,this->color);
+    else DrawRectangle(this->xPosition+5+270-30*i,this->yPosition+5,30,30,this->color);
+    }
+    
+    if(!side) DrawText("Health", this->xPosition+20,this->yPosition+10,20,BLACK);
+    else DrawText("Health", this->xPosition+20+204,this->yPosition+10,20,BLACK);
+}
+
+//Constructor
 Player::Player(int Id, bool side, int ypos, Texture2D playerTexture, Texture2D bulletTexture){
     this->Id = Id;
     this->side = side;
@@ -59,9 +94,10 @@ Player::Player(int Id, bool side, int ypos, Texture2D playerTexture, Texture2D b
 
     this->display = new PlayerDisplay(playerTexture, (float)this->xPosition, 0);
     updateDisplay();
+    if(side) this->hpBar = new HealthDisplay(side, RED, this->xPosition-230,40);
+    else this->hpBar = new HealthDisplay(side, BLUE, this->xPosition-80,40);
     this->bulletTexture = bulletTexture;
-    std::cout << "Created player" << Id << " HP" << this->HP << "\n";
-    std::cout << "xpos and ypos " << this->xPosition << " " << this->yPosition << "\n";
+
 }
 //Destructor
 Player::~Player(){
@@ -147,6 +183,7 @@ void Player::updateDisplay(){
 }
 
 void Player::drawDisplay(){
+    this->hpBar->draw(this->HP);
     this->display->draw();
 }
 

@@ -22,6 +22,7 @@ public:
     void broadcastShootAction(int matchId, int shooterId, int targetY);
     void broadcastPlayerDamage(int matchId, int playerId, int damage, int newHealth);
     void broadcastPlayerDeath(int matchId, int playerId);
+    //void broadcastGameStart(int matchId, int playerId, bool playerSide, int enemyId);
     void broadcastGameEnd(int matchId, int winnerId);
 };
 

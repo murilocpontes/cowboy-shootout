@@ -135,6 +135,7 @@ public:
                 }
                 else if (bytesReceived >= 1 && buffer[0] == static_cast<char>(MessageType::GAME_START)) {
                     std::cout << "Game is starting!" << std::endl;
+                    playerSide = buffer[1];
                     gameActive = true;
                 }
                 else {
@@ -343,16 +344,16 @@ public:
         tcpThread.detach();
         udpThread.detach();
         gameThread.detach();
-        /*
+        
         // Simple command interface
         std::cout << "Commands: 'r' to signal ready, 'q' to exit" << std::endl;
         while(connected && !WindowShouldClose()){
             readInputMenu();
             drawMenu();
             if(gameActive) break;
-        }*/
+        }
 
-        while(connected && !WindowShouldClose()){
+        while(connected && !WindowShouldClose() && gameActive){
             
             readInputGame();
             updateFrameTimers();

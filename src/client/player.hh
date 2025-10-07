@@ -32,6 +32,28 @@ class PlayerDisplay {
     void draw();
 };
 
+class HealthDisplay {
+    private:
+    Color color;
+    int xPosition;
+    int yPosition;
+    bool side;
+
+    public:
+    //Constructor
+    HealthDisplay(bool side, Color color, int xPosition, int yPosition);
+    //Destructor
+    ~HealthDisplay();
+    //Getter
+    //Setter
+    void setxPosition(int xPosition);
+    void setyPosition(int yPosition);
+    void sethealth(int HP);
+    void setcolor(Color color);
+    //Functions
+    void draw(int health);
+};
+
 class Player {
     private:
     int Id;
@@ -46,6 +68,7 @@ class Player {
     int moveTime;
     bool readyToMove;
     PlayerDisplay *display;
+    HealthDisplay *hpBar;
     Texture2D bulletTexture;
 
     public:
