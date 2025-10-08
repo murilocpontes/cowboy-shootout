@@ -25,10 +25,14 @@ Este projeto é um jogo um contra um 2D. Cada jogador controla um personagem na 
 - Bibliotecas de Conexão <netinet/in.h> <arpa/inet.h> <sys/socket.h>
 
 ## Como Executar o Projeto
-1. Clone Repositório
+1. Obter a biblioteca Raylib 
+- Para ubuntu/debian:
 ```
-git clone https://github.com/murilocpontes/cowboy-shootout.git
-cd cowboy-shootout
+    make install-raylib
+```
+- Caso contrário:
+```
+    make install-raylib-source
 ```
 2. Compile o código
 ```
