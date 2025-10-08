@@ -12,6 +12,10 @@
 ## Descrição do Projeto
 Este projeto é um jogo um contra um 2D. Cada jogador controla um personagem na partida através de seu cliente que estabelece uma conexão com um servidor. O servidor realiza o pareamento entre os clientes, fornece ID's à eles e serve de intermédio dos comandos executados por eles.
 
+## Protoclos Utilizados
+- **TCP**: Para relações críticas, como estabelecimento de conexão e inicialização de uma partida.
+- **UDP**: Para transmissão de dados de personagem/estado do jogo, como vida e posição atuais.
+
 ## Tecnologias Utilizadas
 
 - Linguagem C++ (C++17)
