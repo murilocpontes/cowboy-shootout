@@ -27,10 +27,10 @@ public:
     void handleMatchStart(int clientSocket, int matchId);
     
     // UDP message handling
-    void processUDPMessage(const char* message, const sockaddr_in& senderAddr);
-    void handlePlayerPosition(const char* message);
-    void handlePlayerShoot(const char* message);
-    void handlePlayerDamage(const char* message);
+    void processUDPMessage(const char* message, const sockaddr_in& senderAddr, ssize_t packetSize);
+    void handlePlayerPosition(const char* message, ssize_t packetSize);
+    void handlePlayerShoot(const char* message, ssize_t packetSize);
+    void handlePlayerHealth(const char* message, ssize_t packetSize);
 };
 
 #endif

@@ -14,7 +14,7 @@ public:
     ~UDP();
 
     bool sendTo(const char* data, size_t dataSize, const std::string& receiverIP, int receiverPort);
-    bool receiveFrom(char* buffer, size_t bufferSize, sockaddr_in& senderAddress);
+    ssize_t receiveFrom(char* buffer, size_t bufferSize, sockaddr_in& senderAddress);
 private:
     int _sockFd;
 };

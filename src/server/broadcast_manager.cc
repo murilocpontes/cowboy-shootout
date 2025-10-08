@@ -21,7 +21,11 @@ void BroadcastManager::broadcastPlayerPosition(int matchId, Player player){
     positionMsg[1] = static_cast<char>(player.side);
     *reinterpret_cast<int*>(positionMsg + 2) = player.yPos;
     
+    //std::cout << "BroadcastManager: Broadcasting Position: Player " << player.id
+    //          << " at yPos " << player.yPos << " in match " << matchId << std::endl;
+
     broadcastToMatch(matchId, positionMsg, 6, player.id); // Exclude sender
+
 }
 
 void BroadcastManager::broadcastShootAction(int matchId, Player player, int targetY){
@@ -30,23 +34,22 @@ void BroadcastManager::broadcastShootAction(int matchId, Player player, int targ
     shootMsg[1] = static_cast<char>(player.side);
     *reinterpret_cast<int*>(shootMsg + 2) = targetY;
     
-    std::cout << "BroadcastManager: Broadcasting shoot action: Player " << player.id 
-              << " shot at Y=" << targetY << " in match " << matchId << std::endl;
+    //std::cout << "BroadcastManager: Broadcasting shoot action: Player " << player.id 
+    //          << " shot at Y=" << targetY << " in match " << matchId << std::endl;
     
     broadcastToMatch(matchId, shootMsg, 6, player.id); // Exclude shooter
 }
 
-void BroadcastManager::broadcastPlayerDamage(int matchId, Player player, int damage, int newHealth){
-    char damageMsg[10];
-    damageMsg[0] = static_cast<char>(MessageType::PLAYER_DAMAGE);
-    damageMsg[1] = static_cast<char>(player.side);
-    *reinterpret_cast<int*>(damageMsg + 2) = damage;
-    *reinterpret_cast<int*>(damageMsg + 6) = newHealth;
+void BroadcastManager::broadcastPlayerHealth(int matchId, Player player, int newHealth){
+    char healthMsg[6];
+    healthMsg[0] = static_cast<char>(MessageType::PLAYER_HEALTH);
+    healthMsg[1] = static_cast<char>(player.side);
+    *reinterpret_cast<int*>(healthMsg + 2) = newHealth;
+
+    //std::cout << "BroadcastManager: Broadcasting damage: Player " << player.id 
+    //          << " took damage! Remaining health: " << newHealth << std::endl;
     
-    std::cout << "BroadcastManager: Broadcasting damage: Player " << player.id 
-              << " took " << damage << " damage, health: " << newHealth << std::endl;
-    
-    broadcastToMatch(matchId, damageMsg, 10); // Send to all (health control on server)
+    broadcastToMatch(matchId, healthMsg, 6, player.id); // Send to all (health control on server)
 }
 
 void BroadcastManager::broadcastPlayerDeath(int matchId, Player player){
@@ -59,7 +62,7 @@ void BroadcastManager::broadcastPlayerDeath(int matchId, Player player){
     broadcastToMatch(matchId, deathMsg, 2); // Send to all players
 }
 
-void BroadcastManager::broadcastGameEnd(int matchId, Player winner){
+void BroadcastManager::broadcastGameEnd(int matchId, Player winner, int excludePlayerId){
     char gameEndMsg[2];
     gameEndMsg[0] = static_cast<char>(MessageType::GAME_END);
     gameEndMsg[1] = static_cast<char>(winner.side);
@@ -67,5 +70,17 @@ void BroadcastManager::broadcastGameEnd(int matchId, Player winner){
     std::cout << "BroadcastManager: Broadcasting game end: Player " << winner.id 
               << " wins match " << matchId << std::endl;
     
-    broadcastToMatch(matchId, gameEndMsg, 2); // Send to all players
+    auto playersInMatch = playerManager->getPlayersInMatch(matchId);
+
+    for(const auto& player : playersInMatch){
+        if(player.id != excludePlayerId){
+            bool success = tcpServer->sendToClient(player.tcpSocket, gameEndMsg, 2);
+            if(success) {
+                std::cout << "BroadcastManager: Sent game end to Player " << player.id << std::endl;
+            } else {
+                std::cout << "BroadcastManager: Failed to send game end to Player " 
+                    << player.id << " via TCP" << std::endl;
+            }
+        }
+    }
 }

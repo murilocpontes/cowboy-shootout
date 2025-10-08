@@ -20,28 +20,66 @@ private:
     UDP udpSocket;
     std::atomic<bool> connected;
     std::atomic<bool> gameActive;
+    std::atomic<bool> readySent;
+    std::atomic<bool> inMatch;
     int playerId;
-    float playerX, playerY;
     int clientUDPPort;
+    bool playerSide;
+    bool winner;
+    GameState State;
 
-    Player Player1= Player(1,false,5);
-    Player Player2= Player(2,true,6);
+    int targetFPS = 30;
+    int frameCounter = 60;
 
-    //std::map <std::string, Texture2D> textures;
+    Player *Player1;
+    Player *Player2;
+
+    std::map <bool, Player*> Players;
+    std::map <bool, std::deque<Bullet*>*> bulletTrains;
+
+    std::map <std::string, Texture2D> textures;
 
     //Initialization
-    /*
-    void initTextures(){
-        Texture2D tempTexture = LoadTexture("../resources/Player1.png");
-        this->textures["Player1"] = tempTexture;
+    void initPlayers(){
+        Players[false] = new Player(playerId, false, 5, this->textures["Player1"], this->textures["Bullet1"]);
+        Players[true] = new Player(playerId, true, 5, this->textures["Player2"], this->textures["Bullet2"]);
     }
-    */
+    void initBulletTrains(){
+        bulletTrains[false] = new std::deque<Bullet*>;
+        bulletTrains[true] = new std::deque<Bullet*>;
+    }
+    void initTextures(){
+        Image image = LoadImage("resources/Player1.png");
+        Texture2D tempTexture = LoadTextureFromImage(image);
+        this->textures["Player1"] = tempTexture;
+        image = LoadImage("resources/Player2.png");
+        tempTexture = LoadTextureFromImage(image);
+        this->textures["Player2"] = tempTexture;
+        image = LoadImage("resources/Bullet1.png");
+        tempTexture = LoadTextureFromImage(image);
+        this->textures["Bullet1"] = tempTexture;
+        image = LoadImage("resources/Bullet2.png");
+        tempTexture = LoadTextureFromImage(image);
+        this->textures["Bullet2"] = tempTexture;
+        UnloadImage(image);
+    }
+    void initWindow(){
+
+        InitWindow(screenWidth,screenHeight,"Cowboy Shootout!");
+        SetTargetFPS(this->targetFPS);
+    }
     
 public:
-    GameClient(int udpPort) : udpSocket(udpPort), connected(false), gameActive(false), 
-                              playerId(-1), playerX(0.0f), playerY(0.0f), clientUDPPort(udpPort) {
-        //InitWindow(600,600,"Teste");
-        //initTextures();
+    //Constructor
+    GameClient(int udpPort) : udpSocket(udpPort), connected(false), gameActive(false), readySent(false), 
+                              playerId(-1), clientUDPPort(udpPort) {
+        initWindow();
+        initTextures();
+        initPlayers();
+        initBulletTrains();
+        this->playerSide = false;
+        this->State = MAIN_MENU;
+        this->winner = false;
     }
     
     bool connect(const std::string& serverIP, int tcpPort, int udpPort) {
@@ -66,11 +104,12 @@ public:
     
     void sendReady() {
         if (!connected) return;
-        
+    
         char readyMsg[1] = {static_cast<char>(MessageType::PLAYER_READY)};
         std::cout << "Sending ready message (type " << static_cast<int>(MessageType::PLAYER_READY) << ")" << std::endl;
         if (tcpClient.sendData(readyMsg, 1)) {
             std::cout << "Sent ready signal to server" << std::endl;
+            readySent=true;
         } else {
             std::cout << "Failed to send ready signal" << std::endl;
         }
@@ -84,13 +123,44 @@ public:
             
             if (bytesReceived > 0) {
                 buffer[bytesReceived] = '\0';
+
+                std::cout << buffer << std::endl;
                 
                 if (strncmp(buffer, "JOINED:", 7) == 0) {
                     playerId = std::stoi(std::string(buffer + 7));
                     std::cout << "Assigned player ID: " << playerId << std::endl;
                 }
+                else if(bytesReceived >= 1 && buffer[0] == static_cast<char>(MessageType::GAME_END)){
+                    char side = static_cast<char> (buffer[1]);
+                    bool winnerSide=true;
+                    if(side==0) winnerSide=false;
+                    winner = false;
+                    if(winnerSide == playerSide) winner = true;
+
+                    gameActive = false;
+                    State = GAME_OVER;  
+
+                    Players[false]->reset();
+                    Players[true]->reset();
+
+                    bulletTrains[false]->clear();
+                    bulletTrains[true]->clear();
+
+                    std::cout << "game over!\n";
+                
+                }
                 else if (bytesReceived >= 1 && buffer[0] == static_cast<char>(MessageType::GAME_START)) {
                     std::cout << "Game is starting!" << std::endl;
+                    char side = *reinterpret_cast<char*> (buffer+1);
+                    std::cout << side;
+                    if(side==0){
+                        std::cout << "left\n";
+                        playerSide=false;
+                    } 
+                    else {std::cout << "right\n";
+                        playerSide=true;
+                    }
+                    Players[playerSide]->setId(playerId);
                     gameActive = true;
                 }
                 else {
@@ -107,129 +177,268 @@ public:
     void handleUDPMessages() {
         char buffer[1024];
         sockaddr_in senderAddr;
-        
+       
         while (connected) {
-            if (udpSocket.receiveFrom(buffer, sizeof(buffer), senderAddr)) {
+            ssize_t packetSize = udpSocket.receiveFrom(buffer, sizeof(buffer), senderAddr);
+            if (packetSize>0) {
                 if (gameActive) {
-                    processGameUpdate(buffer);
+                    processGameUpdate(buffer, packetSize);
                 }
             }
         }
     }
-    
-    void processGameUpdate(const char* message) {
+        
+    void processGameUpdate(const char* message, ssize_t packetSize) {
         if (!message) return;
         
         MessageType type = static_cast<MessageType>(message[0]);
         
         switch (type) {
             case MessageType::PLAYER_POSITION: {
-                if (strlen(message) >= 13) {
-                    int otherPlayerId = *reinterpret_cast<const int*>(message + 1);
-                    float x = *reinterpret_cast<const float*>(message + 5);
-                    float y = *reinterpret_cast<const float*>(message + 9);
-                    
-                    if (otherPlayerId != playerId) {
-                        std::cout << "Player " << otherPlayerId << " position: (" 
-                                  << x << ", " << y << ")" << std::endl;
-                    }
+                if (packetSize >= 6) {
+                    char side = static_cast<char> (message[1]);
+                    int enemyPos = *reinterpret_cast<const int*>(message+2);
+                    if(side==0) Players[false]->updatePosition(enemyPos);
+                    else Players[true]->updatePosition(enemyPos);
                 }
                 break;
             }
             
             case MessageType::PLAYER_SHOOT: {
-                std::cout << "Someone shot!" << std::endl;
+                if(packetSize >=6){
+                    char side = static_cast<char> (message[1]);
+                    int shootPos = *reinterpret_cast<const int*>(message+2);
+                    if(side==0) Players[false]->shoot(bulletTrains[false],shootPos);
+                    else Players[true]->shoot(bulletTrains[true],shootPos);
+                }
                 break;
             }
-            
+
+            case MessageType::PLAYER_HEALTH: {
+                if(packetSize >=6){
+                    char side = static_cast<char> (message[1]);
+                    int HP = *reinterpret_cast<const int*>(message+2);
+                    if(side==0) Players[false]->setHP(HP);
+                    else Players[true]->setHP(HP);
+                }
+                break;
+            }
             default:
                 break;
         }
     }
     
-    void sendPosition(float x, float y) {
-        if (!gameActive || playerId == -1) return;
+    void sendPosition() {
+        //std::string positionMsg= static_cast<char>(MessageType::PLAYER_POSITION) + std::to_string(playerId) + std::to_string(Players[playerSide]->getyPosition());
+        char positionMsg[9];
         
-        playerX = x;
-        playerY = y;
-        
-        char positionMsg[13];
         positionMsg[0] = static_cast<char>(MessageType::PLAYER_POSITION);
         *reinterpret_cast<int*>(positionMsg + 1) = playerId;
-        *reinterpret_cast<float*>(positionMsg + 5) = x;
-        *reinterpret_cast<float*>(positionMsg + 9) = y;
+        *reinterpret_cast<int*>(positionMsg + 5) = Players[playerSide]->getyPosition();
         
-        udpSocket.sendTo(positionMsg, 13, "127.0.0.1", 8081);
+        //std::cout << "position sent!\n";
+        
+        udpSocket.sendTo(positionMsg, 9, "127.0.0.1", 8081);
     }
     
-    void sendShoot() {
-        if (!gameActive) return;
+    void sendShoot(int yPos) {
         
-        char shootMsg[1] = {static_cast<char>(MessageType::PLAYER_SHOOT)};
-        udpSocket.sendTo(shootMsg, 1, "127.0.0.1", 8081);
-        std::cout << "Shot fired!" << std::endl;
+        char shootMsg[9]; 
+        shootMsg[0] = {static_cast<char>(MessageType::PLAYER_SHOOT)};
+        *reinterpret_cast<int*>(shootMsg + 1) = playerId;
+        *reinterpret_cast<int*>(shootMsg + 5) = yPos;
+
+        //std::cout << "Shot sent!\n";
+
+        udpSocket.sendTo(shootMsg, 9, "127.0.0.1", 8081);
     }
-    
-    void gameLoop() {
-        float x=0, y=0;
-        while (connected) {
-            if (gameActive) {
-                // Simulate movement
-                x += 0.1f;
-                y += 0.05f;
-                sendPosition(x, y);
 
-                Player1.moveBullets();
-                Player2.moveBullets();
+    void sendHealth() {
+        char healthMsg[9];
+        healthMsg[0] = {static_cast<char>(MessageType::PLAYER_HEALTH)};
+        *reinterpret_cast<int*>(healthMsg + 1) = playerId;
+        *reinterpret_cast<int*>(healthMsg + 5) = Players[playerSide]->getHP();
 
-                std::deque<Bullet> *train1 = Player1.getbulletTrain();
-                std::deque<Bullet> *train2 = Player2.getbulletTrain();
+        //std::cout << "HP sent!\n";
 
-                if(!train1->empty()){
-                    Player1.checkHit(train2->front());
-                }
-                if(!train2->empty()){
-                    Player2.checkHit(train1->front());
-                }
-                if(!train1->empty() && !train2->empty()){
-                    train1->front().checkCollision(&train2->front());
-                }
+        udpSocket.sendTo(healthMsg, 9, "127.0.0.1", 8081);
+    }
+
+    void draw() {
+        BeginDrawing();
+            ClearBackground(BLACK);
+            Players[false]->drawDisplay();
+            Players[true]->drawDisplay();
+            for(auto it = bulletTrains[false]->begin(); it!=bulletTrains[false]->end();it++){
+                (*it)->drawDisplay();
             }
-            
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            for(auto it = bulletTrains[true]->begin(); it!=bulletTrains[true]->end();it++){
+                (*it)->drawDisplay();
+            }
+        EndDrawing();
+    }
+
+    void drawMainMenu(){
+        char mainMessage[] = "Commands: 'r' to signal ready, 'q' to exit";
+        char readyMessage[] = "Player Ready: looking for match...";
+        int shift = MeasureText(mainMessage, 20);
+        BeginDrawing();
+            ClearBackground(BLACK);
+            DrawText(mainMessage, screenWidth/2-shift/2,screenHeight/2-200,20,WHITE);
+            if(readySent){
+                shift = MeasureText(readyMessage,20);
+                DrawText(readyMessage,screenWidth/2-shift/2,screenHeight/2-100,20,WHITE); 
+            }
+        EndDrawing();
+    }
+
+    void drawGameOver(){
+        char playerLoses[] = "You Lose!";
+        char playerWins[] = "You Win!";
+        Color color = BLUE;
+        if(playerSide) color = RED;
+
+        int shiftLoses = MeasureText(playerLoses,50);
+        int shiftWins = MeasureText(playerWins,50);
+
+        BeginDrawing();
+            ClearBackground(BLACK);
+            if(winner) DrawText(playerWins, screenWidth/2-shiftWins/2,screenHeight/2-25,50,color);
+            else DrawText(playerLoses, screenWidth/2-shiftLoses/2,screenHeight/2-25,50,color);
+        EndDrawing();
+    }
+
+    void readInputGame() {
+        if(IsKeyPressed(KEY_R) && State == MAIN_MENU){
+            sendReady();
+        }
+        if(IsKeyPressed(KEY_Q)){
+            connected=false;
+        }
+        if(IsKeyPressed(KEY_LEFT) && State == GAME_MATCH){
+            Players[playerSide]->move(-2);
+        }
+        if(IsKeyPressed(KEY_RIGHT) && State == GAME_MATCH){
+            Players[playerSide]->move(+2);
+        }
+        if(IsKeyPressed(KEY_Z) && State == GAME_MATCH){
+            Players[playerSide]->shoot(bulletTrains[playerSide],-1);
+            sendShoot(-1);
+        }
+        if(IsKeyPressed(KEY_X) && State == GAME_MATCH){
+            Players[playerSide]->shoot(bulletTrains[playerSide],0);
+            sendShoot(0);
+        }
+        if(IsKeyPressed(KEY_C)){
+            Players[playerSide]->shoot(bulletTrains[playerSide],+1);
+            sendShoot(1);
+        }
+    }
+    
+    void updateDisplays(){
+        Players[playerSide]->updateDisplay();
+        Players[!playerSide]->updateDisplay();
+        for(auto it = bulletTrains[playerSide]->begin(); it!=this->bulletTrains[playerSide]->end();it++){
+            (*it)->updateDisplay();
+        }
+        for(auto it = bulletTrains[!playerSide]->begin(); it!=bulletTrains[!playerSide]->end();it++){
+            (*it)->updateDisplay();
+        }
+    }
+
+    void updateFrameTimers(){
+        Players[playerSide]->updateTimer();
+        Players[!playerSide]->updateTimer();
+        if(!bulletTrains[playerSide]->empty()){
+            if(bulletTrains[playerSide]->front()->getbulletLifeTime() <= bulletTrains[playerSide]->front()->getbulletTime()){
+            bulletTrains[playerSide]->pop_front();
+            }
+        }
+        if(!bulletTrains[!playerSide]->empty()){
+            if(bulletTrains[!playerSide]->front()->getbulletLifeTime() <= bulletTrains[!playerSide]->front()->getbulletTime()){
+                bulletTrains[!playerSide]->pop_front();
+            }
+        }
+    }
+    
+    void moveBullets(){
+        for(auto it = bulletTrains[playerSide]->begin(); it!=bulletTrains[playerSide]->end();it++){
+            (*it)->move();
+        }
+        for(auto it = bulletTrains[!playerSide]->begin(); it!=bulletTrains[!playerSide]->end();it++){
+            (*it)->move();
+        }
+
+        for(auto it = bulletTrains[playerSide]->begin(); it!=bulletTrains[playerSide]->end();it++){
+            for(auto jt = bulletTrains[!playerSide]->begin(); jt!=bulletTrains[!playerSide]->end();jt++){
+            (*it)->checkCollision(*jt);
+            }
         }
         
     }
+
+    void checkHit(){
+        if(!bulletTrains[!playerSide]->empty()){
+            Players[playerSide]->checkHit(bulletTrains[!playerSide]->front());
+        }
+        if(!bulletTrains[playerSide]->empty()){
+            Players[!playerSide]->checkHit(bulletTrains[playerSide]->front());
+        }
+    }
     
+    void runMainMenu(){
+        frameCounter=150;
+        drawMainMenu();
+        if(gameActive){
+            State = GAME_MATCH;
+            readySent=false;
+        } 
+    }
+
+    void runGameMatch(){
+        updateFrameTimers();
+        moveBullets();
+        checkHit();
+        updateDisplays();
+
+        sendPosition();
+        sendHealth();
+
+        draw();
+    }
+
+    void runGameOver(){
+        frameCounter--;
+        drawGameOver();
+        if(frameCounter<0) State = MAIN_MENU;
+    }
+
     void run() {
         // Start message handling threads
         std::thread tcpThread(&GameClient::handleTCPMessages, this);
         std::thread udpThread(&GameClient::handleUDPMessages, this);
-        std::thread gameThread(&GameClient::gameLoop, this);
         
         tcpThread.detach();
         udpThread.detach();
-        gameThread.detach();
         
-        // Simple command interface
-        std::string command;
-        std::cout << "Commands: 'ready' to signal ready, 'shoot' to shoot, 'quit' to exit" << std::endl;
-        
-        while (connected && std::getline(std::cin, command)) {
-            if (command == "ready") {
-                sendReady();
-            }
-            else if (command == "shoot") {
-                sendShoot();
-            }
-            else if (command == "quit") {
-                connected = false;
-                break;
-            }
-            else {
-                std::cout << "Unknown command. Use: ready, shoot, quit" << std::endl;
+        while(connected && !WindowShouldClose()){
+            readInputGame();
+            switch (State){
+                case MAIN_MENU:
+                    runMainMenu();
+                    break;
+
+                case GAME_MATCH:
+                    runGameMatch();
+                    break;
+
+                case GAME_OVER:
+                    runGameOver();
+                    break;
             }
         }
+
+        CloseWindow();
     }
 };
 

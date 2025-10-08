@@ -68,21 +68,23 @@ bool PlayerManager::setPlayerReady(int tcpSocket){
 }
 
 // Player state
-void PlayerManager::movePlayerToGame(int tcpSocket, int matchId){
+void PlayerManager::movePlayerToGame(int tcpSocket, int matchId, bool side){
     std::lock_guard<std::mutex> availableLock(availablePlayersMutex);
     std::lock_guard<std::mutex> inGameLock(inGamePlayersMutex);
     
     auto availableIt = availablePlayers.find(tcpSocket);
     if(availableIt != availablePlayers.end()){
         Player player = availableIt->second;
-        player.matchId = matchId;
         player.reset(); // Reset health and status for new match
+        player.matchId = matchId;
+        player.side = side;
+        
         
         inGamePlayers[tcpSocket] = player;
         availablePlayers.erase(availableIt);
         
         std::cout << "PlayerManager: Moved Player " << player.id 
-                  << " to in-game (Match " << matchId << ")" << std::endl;
+                  << " to in-game (Match " << player.matchId << ")" << std::endl;
     }
 }
 
@@ -115,15 +117,14 @@ void PlayerManager::updatePlayerPosition(int playerId, int yPos){
     }
 }
 
-void PlayerManager::updatePlayerHealth(int playerId, int damage){
+void PlayerManager::updatePlayerHealth(int playerId, int health){
     std::lock_guard<std::mutex> lock(inGamePlayersMutex);
     
     for(auto& pair : inGamePlayers){
         if(pair.second.id == playerId && pair.second.isAlive){
-            pair.second.takeDamage(damage);
-            
-            std::cout << "PlayerManager: Player " << playerId << " took " << damage 
-                      << " damage, health now: " << pair.second.health << std::endl;
+            pair.second.updateHealth(health);
+            //std::cout << "PlayerManager: Player " << playerId << " took damage! Health now: " 
+             //   << pair.second.health << std::endl;
             
             if(!pair.second.isAlive){
                 std::cout << "PlayerManager: Player " << playerId << " died!" << std::endl;
@@ -183,9 +184,32 @@ Player* PlayerManager::findInGamePlayerById(int playerId){
     return nullptr;
 }
 
+Player* PlayerManager::findPlayerBySocket(int tcpSocket){
+    Player* player = nullptr;
+    { // Search inGamePlayers
+        std::lock_guard<std::mutex> lock(inGamePlayersMutex);
+        
+        for(auto& pair : inGamePlayers){
+            if(pair.second.tcpSocket == tcpSocket){
+                player = &pair.second;
+            }
+        }
+    }
+    if(player == nullptr){ // Search availablePlayers if not found
+        std::lock_guard<std::mutex> lock(availablePlayersMutex);
+        
+        for(auto& pair : availablePlayers){
+            if(pair.second.tcpSocket == tcpSocket){
+                player = &pair.second;
+            }
+        }
+    }
+    return player;
+}
+
 std::vector<Player> PlayerManager::getPlayersInMatch(int matchId){
     std::lock_guard<std::mutex> lock(inGamePlayersMutex);
-    
+
     std::vector<Player> playersInMatch;
     for(const auto& pair : inGamePlayers){
         if(pair.second.matchId == matchId){
@@ -195,3 +219,4 @@ std::vector<Player> PlayerManager::getPlayersInMatch(int matchId){
     
     return playersInMatch;
 }
+

@@ -18,19 +18,14 @@ bool MatchManager::tryCreateMatch(int& matchId){
     Player player1 = readyPlayers[0];
     Player player2 = readyPlayers[1];
 
-    // Configure players side
-    player1.side = 0;
-    player2.side = 1;
-    
     // Create match
     matchId = nextMatchId++;
-    nextMatchId++;
 
     auto match = std::make_unique<Match>(matchId, player1.id, player2.id);
     
     // Move players to in-game
-    playerManager->movePlayerToGame(player1.tcpSocket, matchId);
-    playerManager->movePlayerToGame(player2.tcpSocket, matchId);
+    playerManager->movePlayerToGame(player1.tcpSocket, matchId, 0);
+    playerManager->movePlayerToGame(player2.tcpSocket, matchId, 1);
     
     // Store match
 {
@@ -86,7 +81,7 @@ void MatchManager::endMatch(int matchId){
     }
 }
 
-void MatchManager::endMatchWithWinner(int matchId, Player winner){
+void MatchManager::endMatchWithWinner(int matchId, Player winner, int excludePlayerId){
 {
         std::lock_guard<std::mutex> lock(matchesMutex);
         auto matchIt = activeMatches.find(matchId);
@@ -99,7 +94,7 @@ void MatchManager::endMatchWithWinner(int matchId, Player winner){
     std::cout << "MatchManager: === MATCH " << matchId << " ENDED - WINNER: Player " << winner.id << " ===" << std::endl;
     
     // Broadcast game end to all players
-    broadcastManager->broadcastGameEnd(matchId, winner);
+    broadcastManager->broadcastGameEnd(matchId, winner, excludePlayerId);
     
     // End the match
     endMatch(matchId);

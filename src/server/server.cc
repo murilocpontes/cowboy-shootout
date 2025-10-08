@@ -4,7 +4,7 @@
 
 GameServer::GameServer(int tcpPort, int udpPort)
     : tcpServer(tcpPort), udpSocket(udpPort), serverRunning(true),
-      broadcastManager(&udpSocket, &playerManager),
+      broadcastManager(&udpSocket, &tcpServer, &playerManager),
       matchManager(&playerManager, &broadcastManager),
       messageHandler(&playerManager, &matchManager, &broadcastManager, &tcpServer)
       {}
@@ -14,15 +14,22 @@ void GameServer::removePlayer(int tcpSocket){
     Player* player = nullptr;
     
     // Check both available and in-game players
-    player = playerManager.findPlayerById(tcpSocket); // This won't work, need to find by socket
-    
-    // Remove player using PlayerManager
-    playerManager.removePlayer(tcpSocket);
+    player = playerManager.findPlayerBySocket(tcpSocket);
+
+    if(player)
+        std::cout << "GAMESERVER: Player matchId: " << player->matchId << std::endl;
+    else
+        std::cout << "Player not found!!!!!!" << std::endl;
     
     // If player was in a match, end it
     if(player && player->matchId != -1){
-        matchManager.endMatch(player->matchId);
+        int otherId = matchManager.findMatch(player->matchId)->getOtherPlayer(player->id);
+        auto other = playerManager.findInGamePlayerById(otherId);
+        matchManager.endMatchWithWinner(player->matchId, *other, player->id);
     }
+
+    // Remove player using PlayerManager
+    playerManager.removePlayer(tcpSocket);
     
     tcpServer.closeClientSocket(tcpSocket);
 }
@@ -48,8 +55,9 @@ void GameServer::handleUDPMessages(){
     sockaddr_in senderAddr;
     
     while(serverRunning){
-        if(udpSocket.receiveFrom(buffer, sizeof(buffer), senderAddr)){
-            messageHandler.processUDPMessage(buffer, senderAddr);
+        ssize_t packetSize = udpSocket.receiveFrom(buffer, sizeof(buffer), senderAddr);
+        if(packetSize > 0){
+            messageHandler.processUDPMessage(buffer, senderAddr, packetSize);
         }
     }
 }

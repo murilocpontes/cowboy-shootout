@@ -23,15 +23,16 @@ public:
     bool setPlayerReady(int tcpSocket);
     
     // Player state
-    void movePlayerToGame(int tcpSocket, int matchId);
+    void movePlayerToGame(int tcpSocket, int matchId, bool side);
     void movePlayerToAvailable(int tcpSocket);
     void updatePlayerPosition(int playerId, int yPos);
-    void updatePlayerHealth(int playerId, int damage);
+    void updatePlayerHealth(int playerId, int health);
     
     // Queries
     std::vector<Player> getReadyPlayers();
     Player* findPlayerById(int playerId);
     Player* findInGamePlayerById(int playerId);
+    Player* findPlayerBySocket(int tcpSocket);
     std::vector<Player> getPlayersInMatch(int matchId);
 };
 

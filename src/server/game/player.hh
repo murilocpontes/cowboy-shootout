@@ -20,7 +20,7 @@ public:
     
     void reset();
     
-    void takeDamage(int damage);
+    void updateHealth(int health);
 };
 
 #endif
