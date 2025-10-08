@@ -28,13 +28,14 @@ Este projeto é um jogo um contra um 2D. Cada jogador controla um personagem na 
 
 ### Instalação da Raylib
 **Linux** 
-'''
+
+' ' '
 sudo apt install cmake git build-essential
 git clone https://github.com/raysan5/raylib.git
 cd raylib/src
 make PLATFORM=PLATFORM_DESKTOP
 sudo make install
-'''
+' ' '
 
 ### Execução
 
