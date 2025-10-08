@@ -38,6 +38,23 @@ sudo make install
 ```
 
 ### Execução
+1. Clone Repositório
+```
+git clone https://github.com/murilocpontes/cowboy-shootout.git
+cd cowboy-shootout
+```
+2. Compile o código
+```
+make
+```
+3. Inicie o Servidor
+```
+./bin/server
+```
+4. Inicie os Clientes (2+)
+```
+./bin/client
+```
 
 ## Controles do Jogo:
 
