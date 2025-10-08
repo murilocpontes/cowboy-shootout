@@ -10,7 +10,7 @@
 - Thaís Laura Anício Andrade NºUSP : 14608765
 
 ## Descrição do Projeto
-Este projeto é um jogo um contra um de tiro. Cada jogador controla um personagem na partida através de seu cliente, os clientes tendo estabelicido uma conexão com um servidor. O servidor realiza o pareamento entre os clientes e serve de intermédio dos comandos executados pelos clientes.
+Este projeto é um jogo um contra um 2D. Cada jogador controla um personagem na partida através de seu cliente que estabelece uma conexão com um servidor. O servidor realiza o pareamento entre os clientes e serve de intermédio dos comandos executados por eles.
 
 ## Tecnologias Utilizadas
 
