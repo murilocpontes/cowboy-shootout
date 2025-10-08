@@ -25,8 +25,6 @@ Este projeto é um jogo um contra um 2D. Cada jogador controla um personagem na 
 - Bibliotecas de Conexão <netinet/in.h> <arpa/inet.h> <sys/socket.h>
 
 ## Como Executar o Projeto
-
-### Pré-Requisitos
 1. Clone Repositório
 ```
 git clone https://github.com/murilocpontes/cowboy-shootout.git
