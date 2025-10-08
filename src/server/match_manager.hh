@@ -26,7 +26,7 @@ public:
     bool tryCreateMatch(int& matchId);
     void startMatch(int matchId);
     void endMatch(int matchId);
-    void endMatchWithWinner(int matchId, Player winner);
+    void endMatchWithWinner(int matchId, Player winner, int excludePlayerId = -1);
     
     // Match queries
     Match* findMatch(int matchId);

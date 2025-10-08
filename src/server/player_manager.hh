@@ -32,6 +32,7 @@ public:
     std::vector<Player> getReadyPlayers();
     Player* findPlayerById(int playerId);
     Player* findInGamePlayerById(int playerId);
+    Player* findPlayerBySocket(int tcpSocket);
     std::vector<Player> getPlayersInMatch(int matchId);
 };
 

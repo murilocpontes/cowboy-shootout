@@ -81,7 +81,7 @@ void MatchManager::endMatch(int matchId){
     }
 }
 
-void MatchManager::endMatchWithWinner(int matchId, Player winner){
+void MatchManager::endMatchWithWinner(int matchId, Player winner, int excludePlayerId){
 {
         std::lock_guard<std::mutex> lock(matchesMutex);
         auto matchIt = activeMatches.find(matchId);
@@ -94,7 +94,7 @@ void MatchManager::endMatchWithWinner(int matchId, Player winner){
     std::cout << "MatchManager: === MATCH " << matchId << " ENDED - WINNER: Player " << winner.id << " ===" << std::endl;
     
     // Broadcast game end to all players
-    broadcastManager->broadcastGameEnd(matchId, winner);
+    broadcastManager->broadcastGameEnd(matchId, winner, excludePlayerId);
     
     // End the match
     endMatch(matchId);

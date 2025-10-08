@@ -184,6 +184,29 @@ Player* PlayerManager::findInGamePlayerById(int playerId){
     return nullptr;
 }
 
+Player* PlayerManager::findPlayerBySocket(int tcpSocket){
+    Player* player = nullptr;
+    { // Search inGamePlayers
+        std::lock_guard<std::mutex> lock(inGamePlayersMutex);
+        
+        for(auto& pair : inGamePlayers){
+            if(pair.second.tcpSocket == tcpSocket){
+                player = &pair.second;
+            }
+        }
+    }
+    if(player == nullptr){ // Search availablePlayers if not found
+        std::lock_guard<std::mutex> lock(availablePlayersMutex);
+        
+        for(auto& pair : availablePlayers){
+            if(pair.second.tcpSocket == tcpSocket){
+                player = &pair.second;
+            }
+        }
+    }
+    return player;
+}
+
 std::vector<Player> PlayerManager::getPlayersInMatch(int matchId){
     std::lock_guard<std::mutex> lock(inGamePlayersMutex);
 
@@ -196,3 +219,4 @@ std::vector<Player> PlayerManager::getPlayersInMatch(int matchId){
     
     return playersInMatch;
 }
+

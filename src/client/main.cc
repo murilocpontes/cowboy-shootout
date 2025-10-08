@@ -130,6 +130,25 @@ public:
                     playerId = std::stoi(std::string(buffer + 7));
                     std::cout << "Assigned player ID: " << playerId << std::endl;
                 }
+                else if(bytesReceived >= 1 && buffer[0] == static_cast<char>(MessageType::GAME_END)){
+                    char side = static_cast<char> (buffer[1]);
+                    bool winnerSide=true;
+                    if(side==0) winnerSide=false;
+                    winner = false;
+                    if(winnerSide == playerSide) winner = true;
+
+                    gameActive = false;
+                    State = GAME_OVER;  
+
+                    Players[false]->reset();
+                    Players[true]->reset();
+
+                    bulletTrains[false]->clear();
+                    bulletTrains[true]->clear();
+
+                    std::cout << "game over!\n";
+                
+                }
                 else if (bytesReceived >= 1 && buffer[0] == static_cast<char>(MessageType::GAME_START)) {
                     std::cout << "Game is starting!" << std::endl;
                     char side = *reinterpret_cast<char*> (buffer+1);
@@ -204,28 +223,6 @@ public:
                 }
                 break;
             }
-            
-            case MessageType::GAME_END: {
-                if(packetSize >=2){
-                    char side = static_cast<char> (message[1]);
-                    bool winnerSide=true;
-                    if(side==0) winnerSide=false;
-                    winner = false;
-                    if(winnerSide == playerSide) winner = true;
-
-                    gameActive = false;
-                    State = GAME_OVER;  
-
-                    Players[false]->reset();
-                    Players[true]->reset();
-
-                    bulletTrains[false]->clear();
-                    bulletTrains[true]->clear();
-
-                    std::cout << "game over!\n";
-                }
-            }
-
             default:
                 break;
         }

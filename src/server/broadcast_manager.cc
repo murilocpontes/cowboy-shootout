@@ -62,7 +62,7 @@ void BroadcastManager::broadcastPlayerDeath(int matchId, Player player){
     broadcastToMatch(matchId, deathMsg, 2); // Send to all players
 }
 
-void BroadcastManager::broadcastGameEnd(int matchId, Player winner){
+void BroadcastManager::broadcastGameEnd(int matchId, Player winner, int excludePlayerId){
     char gameEndMsg[2];
     gameEndMsg[0] = static_cast<char>(MessageType::GAME_END);
     gameEndMsg[1] = static_cast<char>(winner.side);
@@ -70,5 +70,17 @@ void BroadcastManager::broadcastGameEnd(int matchId, Player winner){
     std::cout << "BroadcastManager: Broadcasting game end: Player " << winner.id 
               << " wins match " << matchId << std::endl;
     
-    broadcastToMatch(matchId, gameEndMsg, 2); // Send to all players
+    auto playersInMatch = playerManager->getPlayersInMatch(matchId);
+
+    for(const auto& player : playersInMatch){
+        if(player.id != excludePlayerId){
+            bool success = tcpServer->sendToClient(player.tcpSocket, gameEndMsg, 2);
+            if(success) {
+                std::cout << "BroadcastManager: Sent game end to Player " << player.id << std::endl;
+            } else {
+                std::cout << "BroadcastManager: Failed to send game end to Player " 
+                    << player.id << " via TCP" << std::endl;
+            }
+        }
+    }
 }
