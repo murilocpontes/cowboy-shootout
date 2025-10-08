@@ -23,6 +23,8 @@ Este projeto é um jogo um contra um 2D. Cada jogador controla um personagem na 
 ## Como Executar o Projeto
 
 ### Pré-Requisitos
+1. Tenha o C++ instalado (compilador como 'g++').
+2. Baixe e instale a biblioteca gráfica **raylib**.
 
 ### Instalação da Raylib
 
