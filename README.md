@@ -34,6 +34,14 @@ Este projeto é um jogo um contra um 2D. Cada jogador controla um personagem na 
 ```
     make install-raylib-source
 ```
+- Se preferir instalar manualmente:
+
+```
+git clone https://github.com/raysan5/raylib.git
+cd raylib/src
+make PLATFORM=PLATFORM_DESKTOP
+sudo make install
+```
 2. Compile o código
 ```
 make
