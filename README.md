@@ -9,6 +9,17 @@
 
 - Thaís Laura Anício Andrade NºUSP : 14608765
 
+## Descrição do Projeto
+Este projeto é um jogo um contra um de tiro. Cada jogador controla um personagem na partida através de seu cliente, os clientes tendo estabelicido uma conexão com um servidor. O servidor realiza o pareamento entre os clientes e serve de intermédio dos comandos executados pelos clientes.
+
+## Tecnologias Utilizadas
+
+- Linguagem C++ (C++17)
+
+- Biblioteca Gráfica [Raylib](https://www.raylib.com/index.html)
+
+- Bibliotecas de Conexão <netinet/in.h> <arpa/inet.h> <sys/socket.h>
+
 ## Controles do Jogo:
 
 **<-** Movimenta personagem para cima
