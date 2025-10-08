@@ -51,11 +51,11 @@ cd cowboy-shootout
 ```
 make
 ```
-3. Inicie o Servidor
+3. Inicie o Servidor em um Terminal
 ```
 ./bin/server
 ```
-4. Inicie os Clientes (2+)
+4. Inicie os Clientes (2+) em Outros Terminais
 ```
 ./bin/client
 ```
