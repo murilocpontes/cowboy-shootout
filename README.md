@@ -24,6 +24,10 @@ Este projeto é um jogo um contra um 2D. Cada jogador controla um personagem na 
 
 ### Pré-Requisitos
 
+### Instalação da Raylib
+
+### Execução
+
 ## Controles do Jogo:
 
 **<-** Movimenta personagem para cima
