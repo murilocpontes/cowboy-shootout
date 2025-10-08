@@ -117,35 +117,6 @@ install-raylib-source:
 	sudo ldconfig
 	@echo "Raylib installed from source"
 
-# Test raylib installation
-.PHONY: test-raylib
-test-raylib:
-	@echo "Testing raylib installation..."
-	@echo '#include <raylib.h>' > /tmp/test_raylib.cpp
-	@echo 'int main() { InitWindow(100, 100, "Test"); CloseWindow(); return 0; }' >> /tmp/test_raylib.cpp
-	$(CXX) -o /tmp/test_raylib /tmp/test_raylib.cpp $(RAYLIB_CFLAGS) && echo "✅ Raylib is working!" || echo "❌ Raylib installation failed"
-	@rm -f /tmp/test_raylib /tmp/test_raylib.cpp
-
-# Test individual components
-.PHONY: test-server-only
-test-server-only: server
-	@echo "Starting server only..."
-	./$(SERVER_EXEC)
-
-# Build only the managers
-.PHONY: managers
-managers: $(BUILD_DIR)/server/player_manager.o \
-	      $(BUILD_DIR)/server/match_manager.o \
-	      $(BUILD_DIR)/server/message_handler.o \
-	      $(BUILD_DIR)/server/broadcast_manager.o
-	@echo "All manager objects compiled successfully"
-
-# Build only game objects
-.PHONY: game
-game: $(BUILD_DIR)/server/game/player.o \
-	  $(BUILD_DIR)/server/game/match.o
-	@echo "All game objects compiled successfully"
-
 # Help
 .PHONY: help
 help:
@@ -153,18 +124,14 @@ help:
 	@echo "  all              - Build both client and server (default)"
 	@echo "  client           - Build only the client (with raylib)"
 	@echo "  server           - Build only the server"
-	@echo "  managers         - Compile only manager objects"
-	@echo "  game             - Compile only game objects"
 	@echo "  debug            - Build with debug flags"
 	@echo "  clean            - Remove build artifacts"
 	@echo "  install-raylib   - Install raylib via package manager"
 	@echo "  install-raylib-source - Install raylib from source"
-	@echo "  test-raylib      - Test if raylib is properly installed"
 	@echo "  help             - Show this help message"
 	@echo ""
 	@echo "Before building client, install raylib:"
 	@echo "  make install-raylib     # Easy way (requires raylib package)"
-	@echo "  make test-raylib        # Verify installation"
 	@echo "  make client             # Build client with raylib"
 
 # Print variables (for debugging)
